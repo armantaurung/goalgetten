@@ -1,6 +1,6 @@
 {
-  "name": "GoalGetteng 🎯 Habit & Goal Mastery",
-  "short_name": "GoalGetteng",
+  "name": "GoalGetten 🎯 Habit & Goal Mastery",
+  "short_name": "GoalGetten",
   "description": "Pelacak Goal Utama, Sub-Goal, dan Habit Harian dengan AI Coach, Kalender 365 Hari & Pohon Jeruk",
   "start_url": "./index.html",
   "display": "standalone",

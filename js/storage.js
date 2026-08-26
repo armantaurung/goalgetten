@@ -1,5 +1,5 @@
 /**
- * Storage & Data Model for GoalGetteng
+ * Storage & Data Model for GoalGetten
  */
 
 const STORAGE_KEYS = {
@@ -12,7 +12,8 @@ const STORAGE_KEYS = {
   SUPABASE_URL: 'goalgetteng_supabase_url',
   SUPABASE_ANON_KEY: 'goalgetteng_supabase_anon_key',
   USER_SESSION: 'goalgetteng_user_session',
-  LOCAL_ACCOUNTS: 'goalgetteng_local_accounts'
+  LOCAL_ACCOUNTS: 'goalgetteng_local_accounts',
+  XP: 'goalgetteng_xp'
 };
 
 const DEFAULT_PIN = 'ARMANT';
@@ -351,10 +352,29 @@ class StorageManager {
     }
   }
 
+  static getXP() {
+    const key = this.getUserStorageKey(STORAGE_KEYS.XP);
+    const val = localStorage.getItem(key);
+    return val ? parseInt(val, 10) || 0 : 0;
+  }
+
+  static saveXP(xp) {
+    const key = this.getUserStorageKey(STORAGE_KEYS.XP);
+    localStorage.setItem(key, String(Math.max(0, xp || 0)));
+  }
+
+  static addXP(amount) {
+    const current = this.getXP();
+    const next = current + (amount || 0);
+    this.saveXP(next);
+    return next;
+  }
+
   static resetToDefault() {
     this.saveHabits(DEFAULT_HABITS);
     this.saveGoals(DEFAULT_GOALS);
     this.setPIN(DEFAULT_PIN);
+    this.saveXP(0);
   }
 
   // Google Calendar .ICS Export (RFC 5545)
@@ -367,10 +387,10 @@ class StorageManager {
     let ics = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//GoalGetteng//Habit & Goal Mastery//ID',
+      'PRODID:-//GoalGetten//Habit & Goal Mastery//ID',
       'CALSCALE:GREGORIAN',
       'METHOD:PUBLISH',
-      'X-WR-CALNAME:GoalGetteng Rutinitas & Goals',
+      'X-WR-CALNAME:GoalGetten Rutinitas & Goals',
       'X-WR-TIMEZONE:Asia/Jakarta'
     ];
 
@@ -409,7 +429,7 @@ class StorageManager {
         ics.push(`DESCRIPTION:Kategori: ${g.category}\\nTarget: ${g.targetDate}\\n\\nSub-Goals:\\n${subList}`);
         ics.push('BEGIN:VALARM');
         ics.push('ACTION:DISPLAY');
-        ics.push(`DESCRIPTION:Target GoalGetteng: ${g.title} mendekati batas waktu!`);
+        ics.push(`DESCRIPTION:Target GoalGetten: ${g.title} mendekati batas waktu!`);
         ics.push('TRIGGER:-P1D');
         ics.push('END:VALARM');
         ics.push('END:VEVENT');

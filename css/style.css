@@ -1,6 +1,6 @@
-/* ==========================================================================
-   GoalGetteng 🎯 Master Theme & Design System
-   Matches armantaurung.github.io/goalgetteng Aesthetic + Mass Upload
+﻿/* ==========================================================================
+   GoalGetten ðŸŽ¯ Master Theme & Design System
+   Matches armantaurung.github.io/GoalGetten Aesthetic + Mass Upload
    ========================================================================== */
 
 :root {
@@ -438,7 +438,7 @@ button {
   gap: 0.5rem;
 }
 
-/* Habit Card (GoalGetteng Style) */
+/* Habit Card (GoalGetten Style) */
 .habit-card-v2 {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -644,7 +644,7 @@ button {
   margin-top: 0.2rem;
 }
 
-/* Goals Grid (Daftar Goal Utama 🚀) */
+/* Goals Grid (Daftar Goal Utama ðŸš€) */
 .goals-two-col {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
@@ -686,7 +686,7 @@ button {
   color: var(--cat-health);
 }
 
-/* Habit Matrix Grouping Page (Matriks Kelompok Habit ⚡) */
+/* Habit Matrix Grouping Page (Matriks Kelompok Habit âš¡) */
 .category-matrix-section {
   margin-bottom: 2rem;
   background: var(--bg-card);
@@ -749,7 +749,7 @@ button {
   border-color: transparent;
 }
 
-/* Progres Ringkas Habit (Orange Tree 🍊 / Pohon Jeruk Visualizer) */
+/* Progres Ringkas Habit (Orange Tree ðŸŠ / Pohon Jeruk Visualizer) */
 .orange-tree-card {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -789,7 +789,7 @@ button {
   gap: 0.4rem;
 }
 
-/* 365 Days Calendar Heatmap Accordion (Kalender Rutinitas 📅) */
+/* 365 Days Calendar Heatmap Accordion (Kalender Rutinitas ðŸ“…) */
 .calendar-accordion-item {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -2116,4 +2116,210 @@ button {
 }
 
 
+/* ==========================================================================
+   Toast Notification System
+   ========================================================================== */
+#toast-container {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 100000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  pointer-events: none;
+  max-width: 400px;
+}
+
+.toast-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1.25rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: 0 12px 40px -8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  transform: translateX(120%) scale(0.9);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.toast-item.show {
+  transform: translateX(0) scale(1);
+  opacity: 1;
+}
+
+.toast-item.hide {
+  transform: translateX(120%) scale(0.85);
+  opacity: 0;
+}
+
+.toast-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.toast-msg {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.toast-success {
+  border-left: 3px solid #10b981;
+}
+
+.toast-info {
+  border-left: 3px solid #6366f1;
+}
+
+.toast-warning {
+  border-left: 3px solid #f59e0b;
+}
+
+.toast-error {
+  border-left: 3px solid #ef4444;
+}
+
+
+/* ==========================================================================
+   Custom Confirm Dialog
+   ========================================================================== */
+.custom-confirm-dialog {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.5rem;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: confirmAppear 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes confirmAppear {
+  from { transform: scale(0.85) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.custom-confirm-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.custom-confirm-msg {
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  line-height: 1.5;
+  margin-bottom: 1.75rem;
+}
+
+.custom-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.custom-confirm-actions .btn {
+  min-width: 120px;
+  justify-content: center;
+}
+
+
+/* ==========================================================================
+   Mobile Sidebar Backdrop Overlay
+   ========================================================================== */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 45;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-backdrop.active {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .sidebar-backdrop {
+    display: block;
+    pointer-events: none;
+  }
+  .sidebar-backdrop.active {
+    pointer-events: auto;
+  }
+}
+
+
+/* ==========================================================================
+   Tab Fade-in Animation
+   ========================================================================== */
+.tab-fade-in {
+  animation: tabFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ==========================================================================
+   Pulse Dot (Live Indicator) Animation
+   ========================================================================== */
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  margin-right: 0.35rem;
+  animation: pulseDot 2s ease-in-out infinite;
+  vertical-align: middle;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.3);
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.9);
+  }
+}
+
+
+/* ==========================================================================
+   Header Date Tag Styling
+   ========================================================================== */
+.header-date-tag {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #818cf8;
+  background: rgba(99, 102, 241, 0.12);
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-full);
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
 

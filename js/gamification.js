@@ -175,13 +175,51 @@ const LEVEL_TITLES = [
 ];
 
 class GamificationManager {
+  static XP_PER_LEVEL = 100;
+
+  static getLevelInfo() {
+    const totalXP = window.StorageManager ? StorageManager.getXP() : 0;
+    const level = Math.floor(totalXP / this.XP_PER_LEVEL) + 1;
+    const currentLevelXP = totalXP % this.XP_PER_LEVEL;
+    const progressPercent = Math.min(100, Math.round((currentLevelXP / this.XP_PER_LEVEL) * 100));
+    const titleIndex = Math.min(level - 1, LEVEL_TITLES.length - 1);
+    const title = LEVEL_TITLES[titleIndex];
+
+    return {
+      level,
+      totalXP,
+      currentLevelXP,
+      nextLevelXP: this.XP_PER_LEVEL,
+      progressPercent,
+      title
+    };
+  }
+
   static addXP(amount, sourceElement = null) {
     try {
+      const prevInfo = this.getLevelInfo();
+      const newTotalXP = window.StorageManager ? StorageManager.addXP(amount) : amount;
+      const newLevel = Math.floor(newTotalXP / this.XP_PER_LEVEL) + 1;
+
       if (sourceElement) {
         this.showXPFloat(amount, sourceElement);
       }
-      SoundEffects.playPop();
-    } catch (e) {}
+
+      if (newLevel > prevInfo.level) {
+        // Level up celebration!
+        SoundEffects.playLevelUp();
+        ConfettiEngine.launch(3500);
+        const titleIndex = Math.min(newLevel - 1, LEVEL_TITLES.length - 1);
+        const newTitle = LEVEL_TITLES[titleIndex];
+        if (window.GoalGettenApp && GoalGettenApp.showToast) {
+          GoalGettenApp.showToast(`🎉 NAIK LEVEL ${newLevel}! Gelar: "${newTitle}"`, 'success', 5000);
+        }
+      } else {
+        SoundEffects.playPop();
+      }
+    } catch (e) {
+      console.warn('XP add error:', e);
+    }
   }
 
   static showXPFloat(amount, el) {
@@ -191,8 +229,10 @@ class GamificationManager {
       const tag = document.createElement('div');
       tag.className = 'xp-float-tag';
       tag.textContent = `+${amount} XP`;
+      tag.style.position = 'fixed';
       tag.style.left = `${rect.left + rect.width / 2}px`;
       tag.style.top = `${rect.top - 10}px`;
+      tag.style.zIndex = '999999';
       document.body.appendChild(tag);
 
       setTimeout(() => {

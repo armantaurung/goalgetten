@@ -1,9 +1,9 @@
 /**
- * GoalGetteng 🎯 Master Controller
- * Full Implementation matching armantaurung.github.io/goalgetteng + Mass Upload
+ * GoalGetten ðŸŽ¯ Master Controller
+ * Full Implementation â€” Habit Tracker, Goal Manager, AI Coach & Mass Upload
  */
 
-class GoalGettengApp {
+class GoalGettenApp {
   static currentTab = 'fokus-hari-ini';
   static todayIso = new Date().toISOString().slice(0, 10);
   static parsedMassHabits = [];
@@ -50,9 +50,19 @@ class GoalGettengApp {
 
     const mobileToggle = document.getElementById('mobile-toggle');
     const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+
     if (mobileToggle && sidebar) {
       mobileToggle.addEventListener('click', () => {
         sidebar.classList.toggle('open');
+        if (backdrop) backdrop.classList.toggle('active', sidebar.classList.contains('open'));
+      });
+    }
+
+    if (backdrop) {
+      backdrop.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('open');
+        backdrop.classList.remove('active');
       });
     }
   }
@@ -72,13 +82,17 @@ class GoalGettengApp {
     document.querySelectorAll('.page-section').forEach(sec => {
       if (sec.id === `section-${tabId}`) {
         sec.style.display = 'block';
+        sec.classList.add('tab-fade-in');
       } else {
         sec.style.display = 'none';
+        sec.classList.remove('tab-fade-in');
       }
     });
 
     const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
     if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('active');
 
     this.renderAll();
   }
@@ -86,16 +100,19 @@ class GoalGettengApp {
   static renderAll() {
     this.renderTopSproutWidget();
     this.renderSummaryStats();
-    this.renderFokusHariIni();
-    this.renderDaftarGoals();
-    this.renderMatriksHabit();
-    this.renderProgresRingkas();
-    this.renderKalenderRutinitas();
-    this.renderAnalytics();
+    // Only render the active tab for performance
+    switch (this.currentTab) {
+      case 'fokus-hari-ini': this.renderFokusHariIni(); break;
+      case 'daftar-goal': this.renderDaftarGoals(); break;
+      case 'matriks-habit': this.renderMatriksHabit(); break;
+      case 'progres-ringkas': this.renderProgresRingkas(); break;
+      case 'kalender-rutinitas': this.renderKalenderRutinitas(); break;
+      case 'analisis-cal': this.renderAnalytics(); break;
+    }
   }
 
   // =========================================================================
-  // 1. Tunas Kebiasaan Baru Disiram 🌱 Widget
+  // 1. Tunas Kebiasaan Baru Disiram ðŸŒ± Widget
   // =========================================================================
   static renderTopSproutWidget() {
     const habits = StorageManager.getHabits();
@@ -103,17 +120,17 @@ class GoalGettengApp {
     const totalHabits = habits.length;
     const percentage = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
 
-    let sproutIcon = '🌱';
-    let sproutTitle = 'Tunas Kebiasaan Baru Disiram 🌱';
+    let sproutIcon = 'ðŸŒ±';
+    let sproutTitle = 'Tunas Kebiasaan Baru Disiram ðŸŒ±';
     let sproutDesc = 'Mulai langkah kecilmu hari ini untuk menumbuhkan kebiasaan hebat!';
 
     if (percentage >= 100) {
-      sproutIcon = '🌳';
-      sproutTitle = 'Pohon Kebiasaanmu Tumbuh Subur & Berbuah Lebat! 🌳';
+      sproutIcon = 'ðŸŒ³';
+      sproutTitle = 'Pohon Kebiasaanmu Tumbuh Subur & Berbuah Lebat! ðŸŒ³';
       sproutDesc = 'Luar biasa! Seluruh rutinitas hari ini telah kamu selesaikan dengan sempurna.';
     } else if (percentage >= 50) {
-      sproutIcon = '🌿';
-      sproutTitle = 'Tanaman Kebiasaanmu Semakin Mekar 🌿';
+      sproutIcon = 'ðŸŒ¿';
+      sproutTitle = 'Tanaman Kebiasaanmu Semakin Mekar ðŸŒ¿';
       sproutDesc = `Lebih dari separuh (${percentage}%) habit telah disiram hari ini. Lanjutkan!`;
     }
 
@@ -189,9 +206,9 @@ class GoalGettengApp {
               <span class="cal-badge-num">${dayNum}</span>
             </div>
             <div>
-              <div class="today-date-day-tag">📅 HARI INI • ${dayName.toUpperCase()}</div>
+              <div class="today-date-day-tag">ðŸ“… HARI INI â€¢ ${dayName.toUpperCase()}</div>
               <h2 class="today-date-title">${dayName}, ${dayNum} ${monthFull} ${year}</h2>
-              <span class="today-date-subtitle">Pekan ke-${weekNum} • Kuartal ${quarter} Tahun ${year}</span>
+              <span class="today-date-subtitle">Pekan ke-${weekNum} â€¢ Kuartal ${quarter} Tahun ${year}</span>
             </div>
           </div>
           <div class="today-date-stats-pill">
@@ -204,7 +221,7 @@ class GoalGettengApp {
 
     const heading = document.getElementById('fokus-checklist-heading');
     if (heading) {
-      heading.innerHTML = `⚡ Kebiasaan yang Harus Dikerjakan Hari Ini <span class="header-date-tag">(${dayNum} ${monthShort} ${year})</span>`;
+      heading.innerHTML = `âš¡ Kebiasaan yang Harus Dikerjakan Hari Ini <span class="header-date-tag">(${dayNum} ${monthShort} ${year})</span>`;
     }
 
     const list = document.getElementById('fokus-habits-list');
@@ -216,12 +233,12 @@ class GoalGettengApp {
     if (habits.length === 0) {
       list.innerHTML = `
         <div style="text-align: center; padding: 2.5rem 1.5rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-glass);">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌱</div>
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">ðŸŒ±</div>
           <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.35rem;">Belum ada kebiasaan terdaftar</h4>
           <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Tambahkan kebiasaan harian Anda atau gunakan fitur Mass Upload untuk memulai.</p>
           <div style="display: flex; justify-content: center; gap: 0.75rem;">
-            <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()">📥 Mass Upload</button>
-            <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
+            <button class="btn btn-emerald" onclick="GoalGettenApp.openMassUploadModal()">ðŸ“¥ Mass Upload</button>
+            <button class="btn btn-primary" onclick="GoalGettenApp.openAddHabitModal()">+ Tambah Habit</button>
           </div>
         </div>
       `;
@@ -234,23 +251,23 @@ class GoalGettengApp {
           <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
             <div class="habit-row-top">
               <div class="habit-main-info">
-                <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                  ${isDone ? '✓' : ''}
+                <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                  ${isDone ? 'âœ“' : ''}
                 </div>
                 <div class="habit-title-area">
                   <h4>${h.title}</h4>
                   <div class="habit-meta-tags">
-                    <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
+                    <span class="tag-pill tag-duration">â±ï¸ ${h.duration || 15} Menit</span>
                     <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
-                    <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
+                    <span class="tag-goal">ðŸŽ¯ ${h.goalTitle || 'Tujuan Utama'}</span>
                   </div>
                 </div>
               </div>
 
               <div class="habit-right-actions">
-                <span class="streak-tag">🔥 ${h.streak || 0} d</span>
-                <button class="icon-btn" title="Edit Habit" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
-                <button class="icon-btn" title="Hapus Habit" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
+                <span class="streak-tag">ðŸ”¥ ${h.streak || 0} d</span>
+                <button class="icon-btn" title="Edit Habit" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">âœï¸</button>
+                <button class="icon-btn" title="Hapus Habit" onclick="GoalGettenApp.deleteHabit('${h.id}')">ðŸ—‘ï¸</button>
               </div>
             </div>
 
@@ -281,10 +298,10 @@ class GoalGettengApp {
       } else {
         sideMilestones.innerHTML = allSubgoals.slice(0, 6).map(sg => `
           <div class="subgoal-item ${sg.done ? 'done' : ''}">
-            <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettengApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
+            <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettenApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
             <div class="subgoal-text">
               <div>${sg.text}</div>
-              <div class="subgoal-date">🎯 ${sg.goalTitle} • Target: ${sg.targetDate || '-'}</div>
+              <div class="subgoal-date">ðŸŽ¯ ${sg.goalTitle} â€¢ Target: ${sg.targetDate || '-'}</div>
             </div>
           </div>
         `).join('');
@@ -315,7 +332,7 @@ class GoalGettengApp {
             <span class="tag-pill tag-category" style="background: ${g.color}20; color: ${g.color};">${g.category}</span>
             <span class="goal-percent-badge">${progress}%</span>
             <div style="display: flex; gap: 0.25rem;">
-              <button class="icon-btn" onclick="GoalGettengApp.deleteGoal('${g.id}')">🗑️</button>
+              <button class="icon-btn" onclick="GoalGettenApp.deleteGoal('${g.id}')">ðŸ—‘ï¸</button>
             </div>
           </div>
 
@@ -329,26 +346,26 @@ class GoalGettengApp {
           </div>
 
           <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
-            <span>📅 Target: ${g.targetDate || '-'}</span>
-            <span>📌 Sub-Goal: ${doneSg}/${totalSg}</span>
-            <span>⚡ Habit: ${relatedHabitsCount}</span>
+            <span>ðŸ“… Target: ${g.targetDate || '-'}</span>
+            <span>ðŸ“Œ Sub-Goal: ${doneSg}/${totalSg}</span>
+            <span>âš¡ Habit: ${relatedHabitsCount}</span>
           </div>
 
           <div style="border-top: 1px solid var(--border-glass); padding-top: 0.75rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">Tujuan-tujuan Kecil (Sub-Goals)</span>
-              <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px;" onclick="GoalGettengApp.promptAddSubgoal('${g.id}')">+ Sub-Goal</button>
+              <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px;" onclick="GoalGettenApp.promptAddSubgoal('${g.id}')">+ Sub-Goal</button>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.4rem;">
               ${subgoals.map(s => `
                 <div class="subgoal-item ${s.done ? 'done' : ''}" style="padding: 0.4rem 0.6rem;">
-                  <input type="checkbox" ${s.done ? 'checked' : ''} onchange="GoalGettengApp.toggleSubgoal('${g.id}', '${s.id}')" style="accent-color: ${g.color};">
+                  <input type="checkbox" ${s.done ? 'checked' : ''} onchange="GoalGettenApp.toggleSubgoal('${g.id}', '${s.id}')" style="accent-color: ${g.color};">
                   <div class="subgoal-text" style="font-size: 0.8rem;">
                     <span>${s.text}</span>
                     <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Deadline: ${s.targetDate || '-'}</span>
                   </div>
-                  <button class="icon-btn" style="width: 22px; height: 22px; font-size: 0.7rem;" onclick="GoalGettengApp.deleteSubgoal('${g.id}', '${s.id}')">✕</button>
+                  <button class="icon-btn" style="width: 22px; height: 22px; font-size: 0.7rem;" onclick="GoalGettenApp.deleteSubgoal('${g.id}', '${s.id}')">âœ•</button>
                 </div>
               `).join('')}
             </div>
@@ -400,14 +417,14 @@ class GoalGettengApp {
               <div class="habit-card-v2" style="--habit-color: ${catColor}; margin-bottom: 0;">
                 <div class="habit-row-top">
                   <div class="habit-main-info">
-                    <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                      ${(h.history && h.history[this.todayIso]) ? '✓' : ''}
+                    <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                      ${(h.history && h.history[this.todayIso]) ? 'âœ“' : ''}
                     </div>
                     <div class="habit-title-area">
                       <h4>${h.title}</h4>
                       <div class="habit-meta-tags">
-                        <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
-                        <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan'}</span>
+                        <span class="tag-pill tag-duration">â±ï¸ ${h.duration || 15} Menit</span>
+                        <span class="tag-goal">ðŸŽ¯ ${h.goalTitle || 'Tujuan'}</span>
                       </div>
                     </div>
                   </div>
@@ -416,7 +433,7 @@ class GoalGettengApp {
                     ${past7Days.map(d => {
                       const done = Boolean(h.history && h.history[d.iso]);
                       return `
-                        <div class="day-pill-btn ${done ? 'done' : ''}" style="--cat-color: ${catColor};" onclick="GoalGettengApp.toggleHabit('${h.id}', '${d.iso}')" title="${d.iso}">
+                        <div class="day-pill-btn ${done ? 'done' : ''}" style="--cat-color: ${catColor};" onclick="GoalGettenApp.toggleHabit('${h.id}', '${d.iso}')" title="${d.iso}">
                           <span>${d.dayName}</span>
                           <span>${d.dayNum}</span>
                         </div>
@@ -425,8 +442,8 @@ class GoalGettengApp {
                   </div>
 
                   <div class="habit-right-actions">
-                    <button class="icon-btn" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
-                    <button class="icon-btn" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
+                    <button class="icon-btn" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">âœï¸</button>
+                    <button class="icon-btn" onclick="GoalGettenApp.deleteHabit('${h.id}')">ðŸ—‘ï¸</button>
                   </div>
                 </div>
 
@@ -444,7 +461,7 @@ class GoalGettengApp {
   }
 
   // =========================================================================
-  // 6. Tab: Progres Ringkas Habit (Orange Tree 🍊 / Pohon Jeruk Visualizer)
+  // 6. Tab: Progres Ringkas Habit (Orange Tree ðŸŠ / Pohon Jeruk Visualizer)
   // =========================================================================
   static renderProgresRingkas() {
     const container = document.getElementById('progres-ringkas-container');
@@ -478,10 +495,10 @@ class GoalGettengApp {
       const minutes = historyCount * (h.duration || 15);
       const fruitPercent = Math.min(100, Math.round((historyCount / 30) * 100));
 
-      let treeEmoji = '🌱';
-      if (fruitPercent >= 100) treeEmoji = '🍊';
-      else if (fruitPercent >= 60) treeEmoji = '🌳';
-      else if (fruitPercent >= 30) treeEmoji = '🌿';
+      let treeEmoji = 'ðŸŒ±';
+      if (fruitPercent >= 100) treeEmoji = 'ðŸŠ';
+      else if (fruitPercent >= 60) treeEmoji = 'ðŸŒ³';
+      else if (fruitPercent >= 30) treeEmoji = 'ðŸŒ¿';
 
       return `
         <div class="orange-tree-card">
@@ -490,7 +507,7 @@ class GoalGettengApp {
             <div>
               <h4 style="font-size: 1rem; font-weight: 700;">${h.title}</h4>
               <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
-                <span>⏱️ ${h.duration || 15} Menit</span> • <span>🎯 ${h.goalTitle || 'Tujuan'}</span>
+                <span>â±ï¸ ${h.duration || 15} Menit</span> â€¢ <span>ðŸŽ¯ ${h.goalTitle || 'Tujuan'}</span>
               </div>
             </div>
           </div>
@@ -498,14 +515,14 @@ class GoalGettengApp {
           <div class="tree-right-progress">
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
               <span>Akumulasi: ${historyCount} Hari</span>
-              <span style="color: #f97316;">🔥 ${h.streak || 0}d Streak</span>
+              <span style="color: #f97316;">ðŸ”¥ ${h.streak || 0}d Streak</span>
             </div>
             <div class="plant-progress-bar">
               <div class="plant-progress-fill" style="width: ${fruitPercent}%; background: var(--gradient-orange);"></div>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
               <span>${minutes} Menit Berlatih</span>
-              <span style="color: #f97316; font-weight: 700;">${fruitPercent}% Pohon Berbuah 🍊</span>
+              <span style="color: #f97316; font-weight: 700;">${fruitPercent}% Pohon Berbuah ðŸŠ</span>
             </div>
           </div>
         </div>
@@ -514,7 +531,7 @@ class GoalGettengApp {
   }
 
   // =========================================================================
-  // 7. Tab: Kalender Rutinitas 365 Hari 📅 (Kalender Berjalan & Heatmap)
+  // 7. Tab: Kalender Rutinitas 365 Hari ðŸ“… (Kalender Berjalan & Heatmap)
   // =========================================================================
   static setCalendarViewMode(mode) {
     this.calendarViewMode = mode;
@@ -538,8 +555,8 @@ class GoalGettengApp {
     const inspector = document.getElementById('cal-live-inspector');
     if (!inspector) return;
     const formatted = this.formatIndonesianDate(iso);
-    const statusText = isDone ? '✅ Selesai Dikerjakan' : '⚪ Belum Dikerjakan';
-    inspector.innerHTML = `<span><strong>${habitTitle}:</strong> 📅 ${formatted} — <span style="color: ${isDone ? '#10b981' : '#f59e0b'}; font-weight: 700;">${statusText}</span> (Klik untuk ubah status)</span>`;
+    const statusText = isDone ? 'âœ… Selesai Dikerjakan' : 'âšª Belum Dikerjakan';
+    inspector.innerHTML = `<span><strong>${habitTitle}:</strong> ðŸ“… ${formatted} â€” <span style="color: ${isDone ? '#10b981' : '#f59e0b'}; font-weight: 700;">${statusText}</span> (Klik untuk ubah status)</span>`;
   }
 
   static renderKalenderRutinitas() {
@@ -598,9 +615,9 @@ class GoalGettengApp {
             dayCells.push(`
               <div class="month-day-cell ${isChecked ? 'checked' : ''} ${isToday ? 'today-cell' : ''}"
                    style="${isChecked ? `--day-active-color: ${catColor};` : ''}"
-                   title="${this.INDO_DAYS[new Date(currentYear, m, day).getDay()]}, ${day} ${monthName} ${currentYear}: ${isChecked ? 'Selesai ✓' : 'Belum Dikerjakan'}"
-                   onmouseenter="GoalGettengApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
-                   onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${iso}')">
+                   title="${this.INDO_DAYS[new Date(currentYear, m, day).getDay()]}, ${day} ${monthName} ${currentYear}: ${isChecked ? 'Selesai âœ“' : 'Belum Dikerjakan'}"
+                   onmouseenter="GoalGettenApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
+                   onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${iso}')">
                 <span>${day}</span>
               </div>
             `);
@@ -650,9 +667,9 @@ class GoalGettengApp {
           cells.push(`
             <div class="year-heatmap-cell ${isChecked ? 'checked' : ''} ${isToday ? 'today-cell' : ''}" 
                  style="${isChecked ? `--day-active-color: ${catColor};` : ''}"
-                 title="${this.formatIndonesianDate(iso)}: ${isChecked ? 'Selesai ✓' : 'Belum Selesai'}"
-                 onmouseenter="GoalGettengApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
-                 onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${iso}')">
+                 title="${this.formatIndonesianDate(iso)}: ${isChecked ? 'Selesai âœ“' : 'Belum Selesai'}"
+                 onmouseenter="GoalGettenApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
+                 onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${iso}')">
             </div>
           `);
         }
@@ -679,30 +696,30 @@ class GoalGettengApp {
 
       return `
         <div class="calendar-accordion-item ${idx === 0 ? 'expanded' : ''}" id="accordion-${h.id}">
-          <div class="calendar-accordion-header" onclick="GoalGettengApp.toggleAccordion('${h.id}')">
+          <div class="calendar-accordion-header" onclick="GoalGettenApp.toggleAccordion('${h.id}')">
             <div style="display: flex; align-items: center; gap: 1rem;">
-              <button class="custom-checkbox" onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                ${isDoneToday ? '✓' : ''}
+              <button class="custom-checkbox" onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                ${isDoneToday ? 'âœ“' : ''}
               </button>
               <div>
                 <h4 style="font-size: 0.95rem; font-weight: 700; color: #ffffff;">${h.title}</h4>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">${h.category} • 🎯 ${h.goalTitle || ''}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${h.category} â€¢ ðŸŽ¯ ${h.goalTitle || ''}</div>
               </div>
             </div>
 
             <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
-              <span class="streak-tag">🔥 ${h.streak || 0} d</span>
+              <span class="streak-tag">ðŸ”¥ ${h.streak || 0} d</span>
               <span style="font-size: 0.8rem; font-weight: 600; color: #10b981;">${completedDaysCount} Hari Selesai (${currentYear})</span>
               <span class="cal-month-badge" style="font-size: 0.75rem; color: #818cf8; background: rgba(99, 102, 241, 0.12); padding: 0.2rem 0.6rem; border-radius: 9999px;">
                 Bulan Ini: ${completedThisMonth} Selesai
               </span>
-              <span class="icon-btn" style="font-size: 0.8rem;">▼</span>
+              <span class="icon-btn" style="font-size: 0.8rem;">â–¼</span>
             </div>
           </div>
 
           <div class="calendar-accordion-body">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-glass); flex-wrap: wrap; gap: 0.5rem;">
-              <span>📅 <strong>${h.title}</strong> — Kalender Rutinitas Tahun ${currentYear}</span>
+              <span>ðŸ“… <strong>${h.title}</strong> â€” Kalender Rutinitas Tahun ${currentYear}</span>
               <span style="color: ${catColor}; font-weight: 700;">Total Akumulasi: ${completedDaysCount} Hari Aktif (${Math.round((completedDaysCount/365)*100)}%)</span>
             </div>
             ${calendarBodyHTML}
@@ -732,7 +749,10 @@ class GoalGettengApp {
     if (elGoals) elGoals.textContent = goals.length;
   }
 
-  // ===============================================  static toggleHabit(habitId, dateIso) {
+  // =========================================================================
+  // Toggle Habit Check-in
+  // =========================================================================
+  static toggleHabit(habitId, dateIso) {
     const habits = StorageManager.getHabits();
     const habit = habits.find(h => h.id === habitId);
     if (!habit) return;
@@ -748,8 +768,12 @@ class GoalGettengApp {
     }
     this.renderAll();
 
-    if (habit.history[dateIso] && window.SoundEffects) {
-      SoundEffects.playPop();
+    if (habit.history[dateIso]) {
+      if (window.GamificationManager) {
+        GamificationManager.addXP(25);
+      } else if (window.SoundEffects) {
+        SoundEffects.playPop();
+      }
     }
   }
 
@@ -786,14 +810,39 @@ class GoalGettengApp {
     if (window.AuthManager) {
       AuthManager.pushGoalSave(goal);
     }
+    if (sg.done) {
+      if (window.GamificationManager) {
+        GamificationManager.addXP(40);
+      }
+      GoalGettenApp.showToast(`🎯 Milestone tercapai: "${sg.text}" (+40 XP)`, 'success');
+      if (goal.subgoals.every(s => s.done)) {
+        if (window.ConfettiEngine) ConfettiEngine.launch(3000);
+        if (window.GamificationManager) GamificationManager.addXP(100);
+        GoalGettenApp.showToast(`🏆 Goal Selesai 100%: "${goal.title}" (+100 XP)`, 'success', 4500);
+      }
+    }
     this.renderAll();
   }
 
   static promptAddSubgoal(goalId) {
-    const text = prompt('Masukkan nama sub-goal / milestone baru:');
-    if (!text || !text.trim()) return;
+    GoalGettenApp.showSubgoalModal(goalId);
+  }
 
-    const targetDate = prompt('Target tanggal penyelesaian (YYYY-MM-DD):', new Date().toISOString().slice(0, 10));
+  static showSubgoalModal(goalId) {
+    const modal = document.getElementById('modal-subgoal');
+    if (!modal) return;
+    document.getElementById('subgoal-goal-id').value = goalId;
+    document.getElementById('subgoal-text-input').value = '';
+    document.getElementById('subgoal-date-input').value = new Date().toISOString().slice(0, 10);
+    modal.classList.add('active');
+    setTimeout(() => document.getElementById('subgoal-text-input').focus(), 200);
+  }
+
+  static saveSubgoalFromModal() {
+    const goalId = document.getElementById('subgoal-goal-id').value;
+    const text = document.getElementById('subgoal-text-input').value.trim();
+    const targetDate = document.getElementById('subgoal-date-input').value;
+    if (!text) return;
 
     const goals = StorageManager.getGoals();
     const goal = goals.find(g => g.id === goalId);
@@ -802,7 +851,7 @@ class GoalGettengApp {
     if (!goal.subgoals) goal.subgoals = [];
     goal.subgoals.push({
       id: 'sg-' + Date.now(),
-      text: text.trim(),
+      text: text,
       targetDate: targetDate || '',
       done: false
     });
@@ -811,6 +860,8 @@ class GoalGettengApp {
     if (window.AuthManager) {
       AuthManager.pushGoalSave(goal);
     }
+    this.closeModal('modal-subgoal');
+    this.showToast('âœ… Sub-goal baru ditambahkan!', 'success');
     this.renderAll();
   }
 
@@ -940,18 +991,21 @@ class GoalGettengApp {
       AuthManager.pushHabitSave(savedHabit);
     }
     this.closeModal('modal-habit');
+    this.showToast(id ? 'âœï¸ Habit berhasil diperbarui!' : 'âœ… Habit baru berhasil ditambahkan!', 'success');
     this.renderAll();
   }
 
   static deleteHabit(id) {
-    if (!confirm('Hapus habit ini?')) return;
-    let habits = StorageManager.getHabits();
-    habits = habits.filter(h => h.id !== id);
-    StorageManager.saveHabits(habits);
-    if (window.AuthManager) {
-      AuthManager.pushHabitDelete(id);
-    }
-    this.renderAll();
+    GoalGettenApp.showConfirm('Hapus habit ini beserta seluruh riwayatnya?', () => {
+      let habits = StorageManager.getHabits();
+      habits = habits.filter(h => h.id !== id);
+      StorageManager.saveHabits(habits);
+      if (window.AuthManager) {
+        AuthManager.pushHabitDelete(id);
+      }
+      GoalGettenApp.showToast('ðŸ—‘ï¸ Habit berhasil dihapus', 'info');
+      GoalGettenApp.renderAll();
+    });
   }
 
   static openAddGoalModal() {
@@ -993,18 +1047,21 @@ class GoalGettengApp {
       AuthManager.pushGoalSave(newGoal);
     }
     this.closeModal('modal-goal');
+    this.showToast('ðŸŽ¯ Goal baru berhasil dibuat!', 'success');
     this.renderAll();
   }
 
   static deleteGoal(id) {
-    if (!confirm('Hapus goal ini beserta sub-goalnya?')) return;
-    let goals = StorageManager.getGoals();
-    goals = goals.filter(g => g.id !== id);
-    StorageManager.saveGoals(goals);
-    if (window.AuthManager) {
-      AuthManager.pushGoalDelete(id);
-    }
-    this.renderAll();
+    GoalGettenApp.showConfirm('Hapus goal ini beserta semua sub-goalnya?', () => {
+      let goals = StorageManager.getGoals();
+      goals = goals.filter(g => g.id !== id);
+      StorageManager.saveGoals(goals);
+      if (window.AuthManager) {
+        AuthManager.pushGoalDelete(id);
+      }
+      GoalGettenApp.showToast('ðŸ—‘ï¸ Goal berhasil dihapus', 'info');
+      GoalGettenApp.renderAll();
+    });
   }
 
   static closeModal(modalId) {
@@ -1028,24 +1085,25 @@ class GoalGettengApp {
     reader.onload = (e) => {
       const ok = StorageManager.importBackupJSON(e.target.result);
       if (ok) {
-        alert('Data berhasil dipulihkan!');
-        GoalGettengApp.renderAll();
+        GoalGettenApp.showToast('âœ… Data berhasil dipulihkan dari backup!', 'success');
+        GoalGettenApp.renderAll();
       } else {
-        alert('Format file JSON tidak valid.');
+        GoalGettenApp.showToast('âŒ Format file JSON tidak valid.', 'error');
       }
     };
     reader.readAsText(file);
   }
 
   static resetDefault() {
-    if (confirm('Kembalikan semua data ke sampel bawaan GoalGetteng?')) {
+    GoalGettenApp.showConfirm('âš ï¸ Kembalikan semua data ke sampel bawaan GoalGetten? Semua data Anda akan hilang.', () => {
       StorageManager.resetToDefault();
-      this.renderAll();
-    }
+      GoalGettenApp.showToast('ðŸ”„ Data berhasil dikembalikan ke default', 'info');
+      GoalGettenApp.renderAll();
+    });
   }
 
   // =========================================================================
-  // 9. MASS UPLOAD HABIT MODULE 🚀
+  // 9. MASS UPLOAD HABIT MODULE ðŸš€
   // =========================================================================
   static bindMassUpload() {
     const dropzone = document.getElementById('mass-upload-dropzone');
@@ -1243,11 +1301,11 @@ class GoalGettengApp {
     tableBody.innerHTML = this.parsedMassHabits.map((h, idx) => `
       <tr>
         <td style="width: 32px; text-align: center;">
-          <input type="checkbox" ${h.selected ? 'checked' : ''} onchange="GoalGettengApp.toggleMassHabitSelect(${idx})" style="accent-color: #8b5cf6;">
+          <input type="checkbox" ${h.selected ? 'checked' : ''} onchange="GoalGettenApp.toggleMassHabitSelect(${idx})" style="accent-color: #8b5cf6;">
         </td>
         <td style="font-weight: 600; color: #ffffff;">${h.title}</td>
         <td><span class="tag-pill tag-category" style="font-size: 0.65rem;">${h.category}</span></td>
-        <td>⏱️ ${h.duration}m</td>
+        <td>â±ï¸ ${h.duration}m</td>
         <td style="color: var(--text-secondary); font-size: 0.75rem;">${h.goalName}</td>
         <td style="color: var(--text-muted); font-size: 0.75rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${h.plan || '-'}</td>
       </tr>
@@ -1313,7 +1371,7 @@ class GoalGettengApp {
     if (window.SoundEffects) {
       SoundEffects.playDing();
     }
-    alert(`🎉 Berhasil mengimpor ${addedCount} habit baru secara massal!`);
+    GoalGettenApp.showToast(`ðŸŽ‰ Berhasil mengimpor ${addedCount} habit baru secara massal!`, 'success');
   }
 
   static downloadCSVTemplate() {
@@ -1335,16 +1393,73 @@ class GoalGettengApp {
     link.click();
     document.body.removeChild(link);
   }
+
+  // =========================================================================
+  // Toast Notification System
+  // =========================================================================
+  static showToast(message, type = 'info', duration = 3500) {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item toast-${type}`;
+    const icons = { success: 'âœ…', info: 'â„¹ï¸', warning: 'âš ï¸', error: 'âŒ' };
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || 'â„¹ï¸'}</span><span class="toast-msg">${message}</span>`;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    setTimeout(() => {
+      toast.classList.remove('show');
+      toast.classList.add('hide');
+      setTimeout(() => toast.remove(), 350);
+    }, duration);
+  }
+
+  // =========================================================================
+  // Custom Confirm Dialog (replaces window.confirm)
+  // =========================================================================
+  static showConfirm(message, onConfirm, onCancel) {
+    const overlay = document.getElementById('custom-confirm-overlay');
+    const msgEl = document.getElementById('custom-confirm-message');
+    const btnYes = document.getElementById('custom-confirm-yes');
+    const btnNo = document.getElementById('custom-confirm-no');
+    if (!overlay || !msgEl) return;
+
+    msgEl.textContent = message;
+    overlay.classList.add('active');
+
+    const cleanup = () => {
+      overlay.classList.remove('active');
+      btnYes.replaceWith(btnYes.cloneNode(true));
+      btnNo.replaceWith(btnNo.cloneNode(true));
+    };
+
+    document.getElementById('custom-confirm-yes').addEventListener('click', () => {
+      cleanup();
+      if (onConfirm) onConfirm();
+    });
+
+    document.getElementById('custom-confirm-no').addEventListener('click', () => {
+      cleanup();
+      if (onCancel) onCancel();
+    });
+  }
 }
 
-// Attach globally
-window.GoalGettengApp = GoalGettengApp;
+// Backward compat alias
+window.GoalGettenApp = GoalGettenApp;
+window.GoalGettenApp = GoalGettenApp;
 
 // Instant & Reliable DOM Ready Initializer
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    GoalGettengApp.init();
+    GoalGettenApp.init();
   });
 } else {
-  GoalGettengApp.init();
+  GoalGettenApp.init();
 }
