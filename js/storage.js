@@ -236,12 +236,22 @@ class StorageManager {
       this.saveHabits(DEFAULT_HABITS);
       return DEFAULT_HABITS;
     }
-    return JSON.parse(data);
+    try {
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        this.saveHabits(DEFAULT_HABITS);
+        return DEFAULT_HABITS;
+      }
+      return parsed;
+    } catch (e) {
+      this.saveHabits(DEFAULT_HABITS);
+      return DEFAULT_HABITS;
+    }
   }
 
   static saveHabits(habits) {
     const key = this.getUserStorageKey(STORAGE_KEYS.HABITS);
-    localStorage.setItem(key, JSON.stringify(habits));
+    localStorage.setItem(key, JSON.stringify(habits || []));
   }
 
   static getGoals() {
@@ -251,12 +261,22 @@ class StorageManager {
       this.saveGoals(DEFAULT_GOALS);
       return DEFAULT_GOALS;
     }
-    return JSON.parse(data);
+    try {
+      const parsed = JSON.parse(data);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        this.saveGoals(DEFAULT_GOALS);
+        return DEFAULT_GOALS;
+      }
+      return parsed;
+    } catch (e) {
+      this.saveGoals(DEFAULT_GOALS);
+      return DEFAULT_GOALS;
+    }
   }
 
   static saveGoals(goals) {
     const key = this.getUserStorageKey(STORAGE_KEYS.GOALS);
-    localStorage.setItem(key, JSON.stringify(goals));
+    localStorage.setItem(key, JSON.stringify(goals || []));
   }
 
   static getPIN() {

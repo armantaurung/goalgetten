@@ -213,42 +213,56 @@ class GoalGettengApp {
 
     const goals = StorageManager.getGoals();
 
-    list.innerHTML = habits.map(h => {
-      const isDone = Boolean(h.history && h.history[this.todayIso]);
-      const catColor = h.color || '#8b5cf6';
-
-      return `
-        <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
-          <div class="habit-row-top">
-            <div class="habit-main-info">
-              <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                ${isDone ? '✓' : ''}
-              </div>
-              <div class="habit-title-area">
-                <h4>${h.title}</h4>
-                <div class="habit-meta-tags">
-                  <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
-                  <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
-                  <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="habit-right-actions">
-              <span class="streak-tag">🔥 ${h.streak || 0} d</span>
-              <button class="icon-btn" title="Edit Habit" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
-              <button class="icon-btn" title="Hapus Habit" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
-            </div>
+    if (habits.length === 0) {
+      list.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1.5rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-glass);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌱</div>
+          <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.35rem;">Belum ada kebiasaan terdaftar</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Tambahkan kebiasaan harian Anda atau gunakan fitur Mass Upload untuk memulai.</p>
+          <div style="display: flex; justify-content: center; gap: 0.75rem;">
+            <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()">📥 Mass Upload</button>
+            <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
           </div>
-
-          ${h.plan ? `
-            <div class="implementation-plan-box">
-              <span class="label">Rencana Implementasi:</span> ${h.plan}
-            </div>
-          ` : ''}
         </div>
       `;
-    }).join('');
+    } else {
+      list.innerHTML = habits.map(h => {
+        const isDone = Boolean(h.history && h.history[this.todayIso]);
+        const catColor = h.color || '#8b5cf6';
+
+        return `
+          <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
+            <div class="habit-row-top">
+              <div class="habit-main-info">
+                <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                  ${isDone ? '✓' : ''}
+                </div>
+                <div class="habit-title-area">
+                  <h4>${h.title}</h4>
+                  <div class="habit-meta-tags">
+                    <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
+                    <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
+                    <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="habit-right-actions">
+                <span class="streak-tag">🔥 ${h.streak || 0} d</span>
+                <button class="icon-btn" title="Edit Habit" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
+                <button class="icon-btn" title="Hapus Habit" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
+              </div>
+            </div>
+
+            ${h.plan ? `
+              <div class="implementation-plan-box">
+                <span class="label">Rencana Implementasi:</span> ${h.plan}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
 
     if (sideMilestones) {
       let allSubgoals = [];
@@ -258,15 +272,23 @@ class GoalGettengApp {
         });
       });
 
-      sideMilestones.innerHTML = allSubgoals.slice(0, 6).map(sg => `
-        <div class="subgoal-item ${sg.done ? 'done' : ''}">
-          <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettengApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
-          <div class="subgoal-text">
-            <div>${sg.text}</div>
-            <div class="subgoal-date">🎯 ${sg.goalTitle} • Target: ${sg.targetDate || '-'}</div>
+      if (allSubgoals.length === 0) {
+        sideMilestones.innerHTML = `
+          <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
+            Belum ada sub-goal aktif.
           </div>
-        </div>
-      `).join('');
+        `;
+      } else {
+        sideMilestones.innerHTML = allSubgoals.slice(0, 6).map(sg => `
+          <div class="subgoal-item ${sg.done ? 'done' : ''}">
+            <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettengApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
+            <div class="subgoal-text">
+              <div>${sg.text}</div>
+              <div class="subgoal-date">🎯 ${sg.goalTitle} • Target: ${sg.targetDate || '-'}</div>
+            </div>
+          </div>
+        `).join('');
+      }
     }
   }
 
