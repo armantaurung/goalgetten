@@ -1,6 +1,6 @@
 /**
- * GoalGetten ðŸŽ¯ Master Controller
- * Full Implementation â€” Habit Tracker, Goal Manager, AI Coach & Mass Upload
+ * GoalGetten 🎯 Master Controller
+ * Full Implementation — Habit Tracker, Goal Manager, AI Coach & Mass Upload
  */
 
 class GoalGettenApp {
@@ -112,7 +112,7 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // 1. Tunas Kebiasaan Baru Disiram ðŸŒ± Widget
+  // 1. Tunas Kebiasaan Baru Disiram 🌱 Widget
   // =========================================================================
   static renderTopSproutWidget() {
     const habits = StorageManager.getHabits();
@@ -120,17 +120,17 @@ class GoalGettenApp {
     const totalHabits = habits.length;
     const percentage = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
 
-    let sproutIcon = 'ðŸŒ±';
-    let sproutTitle = 'Tunas Kebiasaan Baru Disiram ðŸŒ±';
+    let sproutIcon = '🌱';
+    let sproutTitle = 'Tunas Kebiasaan Baru Disiram 🌱';
     let sproutDesc = 'Mulai langkah kecilmu hari ini untuk menumbuhkan kebiasaan hebat!';
 
     if (percentage >= 100) {
-      sproutIcon = 'ðŸŒ³';
-      sproutTitle = 'Pohon Kebiasaanmu Tumbuh Subur & Berbuah Lebat! ðŸŒ³';
+      sproutIcon = '🌳';
+      sproutTitle = 'Pohon Kebiasaanmu Tumbuh Subur & Berbuah Lebat! 🌳';
       sproutDesc = 'Luar biasa! Seluruh rutinitas hari ini telah kamu selesaikan dengan sempurna.';
     } else if (percentage >= 50) {
-      sproutIcon = 'ðŸŒ¿';
-      sproutTitle = 'Tanaman Kebiasaanmu Semakin Mekar ðŸŒ¿';
+      sproutIcon = '🌿';
+      sproutTitle = 'Tanaman Kebiasaanmu Semakin Mekar 🌿';
       sproutDesc = `Lebih dari separuh (${percentage}%) habit telah disiram hari ini. Lanjutkan!`;
     }
 
@@ -206,9 +206,9 @@ class GoalGettenApp {
               <span class="cal-badge-num">${dayNum}</span>
             </div>
             <div>
-              <div class="today-date-day-tag">ðŸ“… HARI INI â€¢ ${dayName.toUpperCase()}</div>
+              <div class="today-date-day-tag">📅 HARI INI • ${dayName.toUpperCase()}</div>
               <h2 class="today-date-title">${dayName}, ${dayNum} ${monthFull} ${year}</h2>
-              <span class="today-date-subtitle">Pekan ke-${weekNum} â€¢ Kuartal ${quarter} Tahun ${year}</span>
+              <span class="today-date-subtitle">Pekan ke-${weekNum} • Kuartal ${quarter} Tahun ${year}</span>
             </div>
           </div>
           <div class="today-date-stats-pill">
@@ -221,7 +221,7 @@ class GoalGettenApp {
 
     const heading = document.getElementById('fokus-checklist-heading');
     if (heading) {
-      heading.innerHTML = `âš¡ Kebiasaan yang Harus Dikerjakan Hari Ini <span class="header-date-tag">(${dayNum} ${monthShort} ${year})</span>`;
+      heading.innerHTML = `⚡ Kebiasaan yang Harus Dikerjakan Hari Ini <span class="header-date-tag">(${dayNum} ${monthShort} ${year})</span>`;
     }
 
     const list = document.getElementById('fokus-habits-list');
@@ -233,12 +233,12 @@ class GoalGettenApp {
     if (habits.length === 0) {
       list.innerHTML = `
         <div style="text-align: center; padding: 2.5rem 1.5rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-glass);">
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">ðŸŒ±</div>
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌱</div>
           <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.35rem;">Belum ada kebiasaan terdaftar</h4>
           <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Tambahkan kebiasaan harian Anda atau gunakan fitur Mass Upload untuk memulai.</p>
           <div style="display: flex; justify-content: center; gap: 0.75rem;">
-            <button class="btn btn-emerald" onclick="GoalGettenApp.openMassUploadModal()">ðŸ“¥ Mass Upload</button>
-            <button class="btn btn-primary" onclick="GoalGettenApp.openAddHabitModal()">+ Tambah Habit</button>
+            <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()">📥 Mass Upload</button>
+            <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
           </div>
         </div>
       `;
@@ -251,23 +251,23 @@ class GoalGettenApp {
           <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
             <div class="habit-row-top">
               <div class="habit-main-info">
-                <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                  ${isDone ? 'âœ“' : ''}
+                <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                  ${isDone ? '✓' : ''}
                 </div>
                 <div class="habit-title-area">
                   <h4>${h.title}</h4>
                   <div class="habit-meta-tags">
-                    <span class="tag-pill tag-duration">â±ï¸ ${h.duration || 15} Menit</span>
+                    <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
                     <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
-                    <span class="tag-goal">ðŸŽ¯ ${h.goalTitle || 'Tujuan Utama'}</span>
+                    <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
                   </div>
                 </div>
               </div>
 
               <div class="habit-right-actions">
-                <span class="streak-tag">ðŸ”¥ ${h.streak || 0} d</span>
-                <button class="icon-btn" title="Edit Habit" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">âœï¸</button>
-                <button class="icon-btn" title="Hapus Habit" onclick="GoalGettenApp.deleteHabit('${h.id}')">ðŸ—‘ï¸</button>
+                <span class="streak-tag">🔥 ${h.streak || 0} d</span>
+                <button class="icon-btn" title="Edit Habit" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
+                <button class="icon-btn" title="Hapus Habit" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
               </div>
             </div>
 
@@ -298,10 +298,10 @@ class GoalGettenApp {
       } else {
         sideMilestones.innerHTML = allSubgoals.slice(0, 6).map(sg => `
           <div class="subgoal-item ${sg.done ? 'done' : ''}">
-            <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettenApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
+            <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettengApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
             <div class="subgoal-text">
               <div>${sg.text}</div>
-              <div class="subgoal-date">ðŸŽ¯ ${sg.goalTitle} â€¢ Target: ${sg.targetDate || '-'}</div>
+              <div class="subgoal-date">🎯 ${sg.goalTitle} • Target: ${sg.targetDate || '-'}</div>
             </div>
           </div>
         `).join('');
@@ -332,7 +332,7 @@ class GoalGettenApp {
             <span class="tag-pill tag-category" style="background: ${g.color}20; color: ${g.color};">${g.category}</span>
             <span class="goal-percent-badge">${progress}%</span>
             <div style="display: flex; gap: 0.25rem;">
-              <button class="icon-btn" onclick="GoalGettenApp.deleteGoal('${g.id}')">ðŸ—‘ï¸</button>
+              <button class="icon-btn" onclick="GoalGettengApp.deleteGoal('${g.id}')">🗑️</button>
             </div>
           </div>
 
@@ -346,26 +346,26 @@ class GoalGettenApp {
           </div>
 
           <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
-            <span>ðŸ“… Target: ${g.targetDate || '-'}</span>
-            <span>ðŸ“Œ Sub-Goal: ${doneSg}/${totalSg}</span>
-            <span>âš¡ Habit: ${relatedHabitsCount}</span>
+            <span>📅 Target: ${g.targetDate || '-'}</span>
+            <span>📌 Sub-Goal: ${doneSg}/${totalSg}</span>
+            <span>⚡ Habit: ${relatedHabitsCount}</span>
           </div>
 
           <div style="border-top: 1px solid var(--border-glass); padding-top: 0.75rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">Tujuan-tujuan Kecil (Sub-Goals)</span>
-              <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px;" onclick="GoalGettenApp.promptAddSubgoal('${g.id}')">+ Sub-Goal</button>
+              <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px;" onclick="GoalGettengApp.promptAddSubgoal('${g.id}')">+ Sub-Goal</button>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.4rem;">
               ${subgoals.map(s => `
                 <div class="subgoal-item ${s.done ? 'done' : ''}" style="padding: 0.4rem 0.6rem;">
-                  <input type="checkbox" ${s.done ? 'checked' : ''} onchange="GoalGettenApp.toggleSubgoal('${g.id}', '${s.id}')" style="accent-color: ${g.color};">
+                  <input type="checkbox" ${s.done ? 'checked' : ''} onchange="GoalGettengApp.toggleSubgoal('${g.id}', '${s.id}')" style="accent-color: ${g.color};">
                   <div class="subgoal-text" style="font-size: 0.8rem;">
                     <span>${s.text}</span>
                     <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Deadline: ${s.targetDate || '-'}</span>
                   </div>
-                  <button class="icon-btn" style="width: 22px; height: 22px; font-size: 0.7rem;" onclick="GoalGettenApp.deleteSubgoal('${g.id}', '${s.id}')">âœ•</button>
+                  <button class="icon-btn" style="width: 22px; height: 22px; font-size: 0.7rem;" onclick="GoalGettengApp.deleteSubgoal('${g.id}', '${s.id}')">✕</button>
                 </div>
               `).join('')}
             </div>
@@ -417,14 +417,14 @@ class GoalGettenApp {
               <div class="habit-card-v2" style="--habit-color: ${catColor}; margin-bottom: 0;">
                 <div class="habit-row-top">
                   <div class="habit-main-info">
-                    <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                      ${(h.history && h.history[this.todayIso]) ? 'âœ“' : ''}
+                    <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                      ${(h.history && h.history[this.todayIso]) ? '✓' : ''}
                     </div>
                     <div class="habit-title-area">
                       <h4>${h.title}</h4>
                       <div class="habit-meta-tags">
-                        <span class="tag-pill tag-duration">â±ï¸ ${h.duration || 15} Menit</span>
-                        <span class="tag-goal">ðŸŽ¯ ${h.goalTitle || 'Tujuan'}</span>
+                        <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
+                        <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan'}</span>
                       </div>
                     </div>
                   </div>
@@ -433,7 +433,7 @@ class GoalGettenApp {
                     ${past7Days.map(d => {
                       const done = Boolean(h.history && h.history[d.iso]);
                       return `
-                        <div class="day-pill-btn ${done ? 'done' : ''}" style="--cat-color: ${catColor};" onclick="GoalGettenApp.toggleHabit('${h.id}', '${d.iso}')" title="${d.iso}">
+                        <div class="day-pill-btn ${done ? 'done' : ''}" style="--cat-color: ${catColor};" onclick="GoalGettengApp.toggleHabit('${h.id}', '${d.iso}')" title="${d.iso}">
                           <span>${d.dayName}</span>
                           <span>${d.dayNum}</span>
                         </div>
@@ -442,8 +442,8 @@ class GoalGettenApp {
                   </div>
 
                   <div class="habit-right-actions">
-                    <button class="icon-btn" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">âœï¸</button>
-                    <button class="icon-btn" onclick="GoalGettenApp.deleteHabit('${h.id}')">ðŸ—‘ï¸</button>
+                    <button class="icon-btn" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
+                    <button class="icon-btn" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
                   </div>
                 </div>
 
@@ -461,7 +461,7 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // 6. Tab: Progres Ringkas Habit (Orange Tree ðŸŠ / Pohon Jeruk Visualizer)
+  // 6. Tab: Progres Ringkas Habit (Orange Tree 🍊 / Pohon Jeruk Visualizer)
   // =========================================================================
   static renderProgresRingkas() {
     const container = document.getElementById('progres-ringkas-container');
@@ -495,10 +495,10 @@ class GoalGettenApp {
       const minutes = historyCount * (h.duration || 15);
       const fruitPercent = Math.min(100, Math.round((historyCount / 30) * 100));
 
-      let treeEmoji = 'ðŸŒ±';
-      if (fruitPercent >= 100) treeEmoji = 'ðŸŠ';
-      else if (fruitPercent >= 60) treeEmoji = 'ðŸŒ³';
-      else if (fruitPercent >= 30) treeEmoji = 'ðŸŒ¿';
+      let treeEmoji = '🌱';
+      if (fruitPercent >= 100) treeEmoji = '🍊';
+      else if (fruitPercent >= 60) treeEmoji = '🌳';
+      else if (fruitPercent >= 30) treeEmoji = '🌿';
 
       return `
         <div class="orange-tree-card">
@@ -507,7 +507,7 @@ class GoalGettenApp {
             <div>
               <h4 style="font-size: 1rem; font-weight: 700;">${h.title}</h4>
               <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
-                <span>â±ï¸ ${h.duration || 15} Menit</span> â€¢ <span>ðŸŽ¯ ${h.goalTitle || 'Tujuan'}</span>
+                <span>⏱️ ${h.duration || 15} Menit</span> • <span>🎯 ${h.goalTitle || 'Tujuan'}</span>
               </div>
             </div>
           </div>
@@ -515,14 +515,14 @@ class GoalGettenApp {
           <div class="tree-right-progress">
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
               <span>Akumulasi: ${historyCount} Hari</span>
-              <span style="color: #f97316;">ðŸ”¥ ${h.streak || 0}d Streak</span>
+              <span style="color: #f97316;">🔥 ${h.streak || 0}d Streak</span>
             </div>
             <div class="plant-progress-bar">
               <div class="plant-progress-fill" style="width: ${fruitPercent}%; background: var(--gradient-orange);"></div>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
               <span>${minutes} Menit Berlatih</span>
-              <span style="color: #f97316; font-weight: 700;">${fruitPercent}% Pohon Berbuah ðŸŠ</span>
+              <span style="color: #f97316; font-weight: 700;">${fruitPercent}% Pohon Berbuah 🍊</span>
             </div>
           </div>
         </div>
@@ -531,7 +531,7 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // 7. Tab: Kalender Rutinitas 365 Hari ðŸ“… (Kalender Berjalan & Heatmap)
+  // 7. Tab: Kalender Rutinitas 365 Hari 📅 (Kalender Berjalan & Heatmap)
   // =========================================================================
   static setCalendarViewMode(mode) {
     this.calendarViewMode = mode;
@@ -555,8 +555,8 @@ class GoalGettenApp {
     const inspector = document.getElementById('cal-live-inspector');
     if (!inspector) return;
     const formatted = this.formatIndonesianDate(iso);
-    const statusText = isDone ? 'âœ… Selesai Dikerjakan' : 'âšª Belum Dikerjakan';
-    inspector.innerHTML = `<span><strong>${habitTitle}:</strong> ðŸ“… ${formatted} â€” <span style="color: ${isDone ? '#10b981' : '#f59e0b'}; font-weight: 700;">${statusText}</span> (Klik untuk ubah status)</span>`;
+    const statusText = isDone ? '✅ Selesai Dikerjakan' : '⚪ Belum Dikerjakan';
+    inspector.innerHTML = `<span><strong>${habitTitle}:</strong> 📅 ${formatted} — <span style="color: ${isDone ? '#10b981' : '#f59e0b'}; font-weight: 700;">${statusText}</span> (Klik untuk ubah status)</span>`;
   }
 
   static renderKalenderRutinitas() {
@@ -615,9 +615,9 @@ class GoalGettenApp {
             dayCells.push(`
               <div class="month-day-cell ${isChecked ? 'checked' : ''} ${isToday ? 'today-cell' : ''}"
                    style="${isChecked ? `--day-active-color: ${catColor};` : ''}"
-                   title="${this.INDO_DAYS[new Date(currentYear, m, day).getDay()]}, ${day} ${monthName} ${currentYear}: ${isChecked ? 'Selesai âœ“' : 'Belum Dikerjakan'}"
-                   onmouseenter="GoalGettenApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
-                   onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${iso}')">
+                   title="${this.INDO_DAYS[new Date(currentYear, m, day).getDay()]}, ${day} ${monthName} ${currentYear}: ${isChecked ? 'Selesai ✓' : 'Belum Dikerjakan'}"
+                   onmouseenter="GoalGettengApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
+                   onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${iso}')">
                 <span>${day}</span>
               </div>
             `);
@@ -667,9 +667,9 @@ class GoalGettenApp {
           cells.push(`
             <div class="year-heatmap-cell ${isChecked ? 'checked' : ''} ${isToday ? 'today-cell' : ''}" 
                  style="${isChecked ? `--day-active-color: ${catColor};` : ''}"
-                 title="${this.formatIndonesianDate(iso)}: ${isChecked ? 'Selesai âœ“' : 'Belum Selesai'}"
-                 onmouseenter="GoalGettenApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
-                 onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${iso}')">
+                 title="${this.formatIndonesianDate(iso)}: ${isChecked ? 'Selesai ✓' : 'Belum Selesai'}"
+                 onmouseenter="GoalGettengApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
+                 onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${iso}')">
             </div>
           `);
         }
@@ -696,30 +696,30 @@ class GoalGettenApp {
 
       return `
         <div class="calendar-accordion-item ${idx === 0 ? 'expanded' : ''}" id="accordion-${h.id}">
-          <div class="calendar-accordion-header" onclick="GoalGettenApp.toggleAccordion('${h.id}')">
+          <div class="calendar-accordion-header" onclick="GoalGettengApp.toggleAccordion('${h.id}')">
             <div style="display: flex; align-items: center; gap: 1rem;">
-              <button class="custom-checkbox" onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                ${isDoneToday ? 'âœ“' : ''}
+              <button class="custom-checkbox" onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                ${isDoneToday ? '✓' : ''}
               </button>
               <div>
                 <h4 style="font-size: 0.95rem; font-weight: 700; color: #ffffff;">${h.title}</h4>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">${h.category} â€¢ ðŸŽ¯ ${h.goalTitle || ''}</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">${h.category} • 🎯 ${h.goalTitle || ''}</div>
               </div>
             </div>
 
             <div style="display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap;">
-              <span class="streak-tag">ðŸ”¥ ${h.streak || 0} d</span>
+              <span class="streak-tag">🔥 ${h.streak || 0} d</span>
               <span style="font-size: 0.8rem; font-weight: 600; color: #10b981;">${completedDaysCount} Hari Selesai (${currentYear})</span>
               <span class="cal-month-badge" style="font-size: 0.75rem; color: #818cf8; background: rgba(99, 102, 241, 0.12); padding: 0.2rem 0.6rem; border-radius: 9999px;">
                 Bulan Ini: ${completedThisMonth} Selesai
               </span>
-              <span class="icon-btn" style="font-size: 0.8rem;">â–¼</span>
+              <span class="icon-btn" style="font-size: 0.8rem;">▼</span>
             </div>
           </div>
 
           <div class="calendar-accordion-body">
             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-glass); flex-wrap: wrap; gap: 0.5rem;">
-              <span>ðŸ“… <strong>${h.title}</strong> â€” Kalender Rutinitas Tahun ${currentYear}</span>
+              <span>📅 <strong>${h.title}</strong> — Kalender Rutinitas Tahun ${currentYear}</span>
               <span style="color: ${catColor}; font-weight: 700;">Total Akumulasi: ${completedDaysCount} Hari Aktif (${Math.round((completedDaysCount/365)*100)}%)</span>
             </div>
             ${calendarBodyHTML}
@@ -861,7 +861,7 @@ class GoalGettenApp {
       AuthManager.pushGoalSave(goal);
     }
     this.closeModal('modal-subgoal');
-    this.showToast('âœ… Sub-goal baru ditambahkan!', 'success');
+    this.showToast('✅ Sub-goal baru ditambahkan!', 'success');
     this.renderAll();
   }
 
@@ -991,7 +991,7 @@ class GoalGettenApp {
       AuthManager.pushHabitSave(savedHabit);
     }
     this.closeModal('modal-habit');
-    this.showToast(id ? 'âœï¸ Habit berhasil diperbarui!' : 'âœ… Habit baru berhasil ditambahkan!', 'success');
+    this.showToast(id ? '✏️ Habit berhasil diperbarui!' : '✅ Habit baru berhasil ditambahkan!', 'success');
     this.renderAll();
   }
 
@@ -1003,7 +1003,7 @@ class GoalGettenApp {
       if (window.AuthManager) {
         AuthManager.pushHabitDelete(id);
       }
-      GoalGettenApp.showToast('ðŸ—‘ï¸ Habit berhasil dihapus', 'info');
+      GoalGettenApp.showToast('🗑️ Habit berhasil dihapus', 'info');
       GoalGettenApp.renderAll();
     });
   }
@@ -1047,7 +1047,7 @@ class GoalGettenApp {
       AuthManager.pushGoalSave(newGoal);
     }
     this.closeModal('modal-goal');
-    this.showToast('ðŸŽ¯ Goal baru berhasil dibuat!', 'success');
+    this.showToast('🎯 Goal baru berhasil dibuat!', 'success');
     this.renderAll();
   }
 
@@ -1059,7 +1059,7 @@ class GoalGettenApp {
       if (window.AuthManager) {
         AuthManager.pushGoalDelete(id);
       }
-      GoalGettenApp.showToast('ðŸ—‘ï¸ Goal berhasil dihapus', 'info');
+      GoalGettenApp.showToast('🗑️ Goal berhasil dihapus', 'info');
       GoalGettenApp.renderAll();
     });
   }
@@ -1085,25 +1085,25 @@ class GoalGettenApp {
     reader.onload = (e) => {
       const ok = StorageManager.importBackupJSON(e.target.result);
       if (ok) {
-        GoalGettenApp.showToast('âœ… Data berhasil dipulihkan dari backup!', 'success');
+        GoalGettenApp.showToast('✅ Data berhasil dipulihkan dari backup!', 'success');
         GoalGettenApp.renderAll();
       } else {
-        GoalGettenApp.showToast('âŒ Format file JSON tidak valid.', 'error');
+        GoalGettenApp.showToast('❌ Format file JSON tidak valid.', 'error');
       }
     };
     reader.readAsText(file);
   }
 
   static resetDefault() {
-    GoalGettenApp.showConfirm('âš ï¸ Kembalikan semua data ke sampel bawaan GoalGetten? Semua data Anda akan hilang.', () => {
+    GoalGettenApp.showConfirm('⚠️ Kembalikan semua data ke sampel bawaan GoalGetten? Semua data Anda akan hilang.', () => {
       StorageManager.resetToDefault();
-      GoalGettenApp.showToast('ðŸ”„ Data berhasil dikembalikan ke default', 'info');
+      GoalGettenApp.showToast('🔄 Data berhasil dikembalikan ke default', 'info');
       GoalGettenApp.renderAll();
     });
   }
 
   // =========================================================================
-  // 9. MASS UPLOAD HABIT MODULE ðŸš€
+  // 9. MASS UPLOAD HABIT MODULE 🚀
   // =========================================================================
   static bindMassUpload() {
     const dropzone = document.getElementById('mass-upload-dropzone');
@@ -1301,11 +1301,11 @@ class GoalGettenApp {
     tableBody.innerHTML = this.parsedMassHabits.map((h, idx) => `
       <tr>
         <td style="width: 32px; text-align: center;">
-          <input type="checkbox" ${h.selected ? 'checked' : ''} onchange="GoalGettenApp.toggleMassHabitSelect(${idx})" style="accent-color: #8b5cf6;">
+          <input type="checkbox" ${h.selected ? 'checked' : ''} onchange="GoalGettengApp.toggleMassHabitSelect(${idx})" style="accent-color: #8b5cf6;">
         </td>
         <td style="font-weight: 600; color: #ffffff;">${h.title}</td>
         <td><span class="tag-pill tag-category" style="font-size: 0.65rem;">${h.category}</span></td>
-        <td>â±ï¸ ${h.duration}m</td>
+        <td>⏱️ ${h.duration}m</td>
         <td style="color: var(--text-secondary); font-size: 0.75rem;">${h.goalName}</td>
         <td style="color: var(--text-muted); font-size: 0.75rem; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${h.plan || '-'}</td>
       </tr>
@@ -1371,7 +1371,7 @@ class GoalGettenApp {
     if (window.SoundEffects) {
       SoundEffects.playDing();
     }
-    GoalGettenApp.showToast(`ðŸŽ‰ Berhasil mengimpor ${addedCount} habit baru secara massal!`, 'success');
+    GoalGettenApp.showToast(`🎉 Berhasil mengimpor ${addedCount} habit baru secara massal!`, 'success');
   }
 
   static downloadCSVTemplate() {
@@ -1407,8 +1407,8 @@ class GoalGettenApp {
 
     const toast = document.createElement('div');
     toast.className = `toast-item toast-${type}`;
-    const icons = { success: 'âœ…', info: 'â„¹ï¸', warning: 'âš ï¸', error: 'âŒ' };
-    toast.innerHTML = `<span class="toast-icon">${icons[type] || 'â„¹ï¸'}</span><span class="toast-msg">${message}</span>`;
+    const icons = { success: '✅', info: 'ℹ️', warning: '⚠️', error: '❌' };
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || 'ℹ️'}</span><span class="toast-msg">${message}</span>`;
     container.appendChild(toast);
 
     requestAnimationFrame(() => toast.classList.add('show'));
@@ -1452,7 +1452,7 @@ class GoalGettenApp {
 }
 
 // Backward compat alias
-window.GoalGettenApp = GoalGettenApp;
+window.GoalGettengApp = GoalGettenApp;
 window.GoalGettenApp = GoalGettenApp;
 
 // Instant & Reliable DOM Ready Initializer

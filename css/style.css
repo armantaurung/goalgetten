@@ -1,6 +1,6 @@
-﻿/* ==========================================================================
-   GoalGetten ðŸŽ¯ Master Theme & Design System
-   Matches armantaurung.github.io/GoalGetten Aesthetic + Mass Upload
+/* ==========================================================================
+   GoalGetteng 🎯 Master Theme & Design System
+   Matches armantaurung.github.io/goalgetteng Aesthetic + Mass Upload
    ========================================================================== */
 
 :root {
@@ -438,7 +438,7 @@ button {
   gap: 0.5rem;
 }
 
-/* Habit Card (GoalGetten Style) */
+/* Habit Card (GoalGetteng Style) */
 .habit-card-v2 {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -644,7 +644,7 @@ button {
   margin-top: 0.2rem;
 }
 
-/* Goals Grid (Daftar Goal Utama ðŸš€) */
+/* Goals Grid (Daftar Goal Utama 🚀) */
 .goals-two-col {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
@@ -686,7 +686,7 @@ button {
   color: var(--cat-health);
 }
 
-/* Habit Matrix Grouping Page (Matriks Kelompok Habit âš¡) */
+/* Habit Matrix Grouping Page (Matriks Kelompok Habit ⚡) */
 .category-matrix-section {
   margin-bottom: 2rem;
   background: var(--bg-card);
@@ -749,7 +749,7 @@ button {
   border-color: transparent;
 }
 
-/* Progres Ringkas Habit (Orange Tree ðŸŠ / Pohon Jeruk Visualizer) */
+/* Progres Ringkas Habit (Orange Tree 🍊 / Pohon Jeruk Visualizer) */
 .orange-tree-card {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -789,7 +789,7 @@ button {
   gap: 0.4rem;
 }
 
-/* 365 Days Calendar Heatmap Accordion (Kalender Rutinitas ðŸ“…) */
+/* 365 Days Calendar Heatmap Accordion (Kalender Rutinitas 📅) */
 .calendar-accordion-item {
   background: var(--bg-card);
   border: 1px solid var(--border-glass);
@@ -2114,7 +2114,6 @@ button {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
-
 
 /* ==========================================================================
    Toast Notification System
