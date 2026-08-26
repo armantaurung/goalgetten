@@ -27,16 +27,16 @@ class GoalGettengApp {
   }
 
   static init() {
-    this.bindNavigation();
-    this.bindModals();
-    this.bindMassUpload();
-    if (window.AuthManager) {
-      AuthManager.init();
-    }
-    if (window.AICoachManager) {
-      AICoachManager.init();
-    }
-    this.renderAll();
+    try { this.bindNavigation(); } catch (e) { console.warn('Nav bind error:', e); }
+    try { this.bindModals(); } catch (e) { console.warn('Modals bind error:', e); }
+    try { this.bindMassUpload(); } catch (e) { console.warn('Mass upload bind error:', e); }
+    try {
+      if (window.AuthManager) AuthManager.init();
+    } catch (e) { console.warn('Auth init error:', e); }
+    try {
+      if (window.AICoachManager) AICoachManager.init();
+    } catch (e) { console.warn('AI Coach init error:', e); }
+    try { this.renderAll(); } catch (e) { console.error('Render error:', e); }
   }
 
   static bindNavigation() {
@@ -1315,6 +1315,14 @@ class GoalGettengApp {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Attach globally
+window.GoalGettengApp = GoalGettengApp;
+
+// Instant & Reliable DOM Ready Initializer
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    GoalGettengApp.init();
+  });
+} else {
   GoalGettengApp.init();
-});
+}

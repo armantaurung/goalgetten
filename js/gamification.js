@@ -7,10 +7,12 @@ class SoundEffects {
 
   static init() {
     if (!this.ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        this.ctx = new AudioContext();
-      }
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          this.ctx = new AudioContext();
+        }
+      } catch (e) {}
     }
   }
 
@@ -91,62 +93,71 @@ class SoundEffects {
 
 class ConfettiEngine {
   static launch(duration = 2000) {
-    let canvas = document.getElementById('confetti-canvas');
-    if (!canvas) {
-      canvas = document.createElement('canvas');
-      canvas.id = 'confetti-canvas';
-      document.body.appendChild(canvas);
-    }
-
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = [];
-    const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#fbbf24', '#06b6d4'];
-
-    for (let i = 0; i < 90; i++) {
-      particles.push({
-        x: canvas.width / 2,
-        y: canvas.height * 0.6,
-        r: Math.random() * 6 + 3,
-        color: colors[Math.floor(Math.random() * colors.length)],
-        vx: (Math.random() - 0.5) * 14,
-        vy: (Math.random() - 0.8) * 16,
-        tilt: Math.random() * 10 - 10,
-        tiltAngleInc: (Math.random() * 0.07) + 0.05,
-        tiltAngle: 0
-      });
-    }
-
-    const startTime = Date.now();
-
-    function render() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const elapsed = Date.now() - startTime;
-
-      particles.forEach(p => {
-        p.tiltAngle += p.tiltAngleInc;
-        p.y += p.vy;
-        p.x += p.vx;
-        p.vy += 0.4; // gravity
-
-        ctx.beginPath();
-        ctx.lineWidth = p.r / 2;
-        ctx.strokeStyle = p.color;
-        ctx.moveTo(p.x + p.tilt + p.r, p.y);
-        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
-        ctx.stroke();
-      });
-
-      if (elapsed < duration) {
-        requestAnimationFrame(render);
-      } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    try {
+      let canvas = document.getElementById('confetti-canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'confetti-canvas';
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.pointerEvents = 'none';
+        canvas.style.zIndex = '999999';
+        document.body.appendChild(canvas);
       }
-    }
 
-    render();
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#fbbf24', '#06b6d4'];
+
+      for (let i = 0; i < 90; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height * 0.6,
+          r: Math.random() * 6 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          vx: (Math.random() - 0.5) * 14,
+          vy: (Math.random() - 0.8) * 16,
+          tilt: Math.random() * 10 - 10,
+          tiltAngleInc: (Math.random() * 0.07) + 0.05,
+          tiltAngle: 0
+        });
+      }
+
+      const startTime = Date.now();
+
+      function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const elapsed = Date.now() - startTime;
+
+        particles.forEach(p => {
+          p.tiltAngle += p.tiltAngleInc;
+          p.y += p.vy;
+          p.x += p.vx;
+          p.vy += 0.4; // gravity
+
+          ctx.beginPath();
+          ctx.lineWidth = p.r / 2;
+          ctx.strokeStyle = p.color;
+          ctx.moveTo(p.x + p.tilt + p.r, p.y);
+          ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r);
+          ctx.stroke();
+        });
+
+        if (elapsed < duration) {
+          requestAnimationFrame(render);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+
+      render();
+    } catch (e) {}
   }
 }
 
@@ -165,102 +176,33 @@ const LEVEL_TITLES = [
 
 class GamificationManager {
   static addXP(amount, sourceElement = null) {
-    const stats = AppStorage.getUserStats();
-    stats.xp += amount;
-
-    if (sourceElement) {
-      this.showXPFloat(amount, sourceElement);
-    }
-
-    let leveledUp = false;
-    while (stats.xp >= stats.xpToNextLevel) {
-      stats.xp -= stats.xpToNextLevel;
-      stats.level += 1;
-      stats.xpToNextLevel = Math.floor(stats.xpToNextLevel * 1.35);
-      const titleIndex = Math.min(stats.level - 1, LEVEL_TITLES.length - 1);
-      stats.title = LEVEL_TITLES[titleIndex];
-      leveledUp = true;
-    }
-
-    AppStorage.saveUserStats(stats);
-    this.updateUIStats();
-
-    if (leveledUp) {
-      SoundEffects.playLevelUp();
-      ConfettiEngine.launch(3000);
-      App.showToast(`🎉 Level Up! Anda sekarang Level ${stats.level} (${stats.title})!`, 'success');
-    }
-
-    this.checkBadges();
+    try {
+      if (sourceElement) {
+        this.showXPFloat(amount, sourceElement);
+      }
+      SoundEffects.playPop();
+    } catch (e) {}
   }
 
   static showXPFloat(amount, el) {
-    const rect = el.getBoundingClientRect();
-    const tag = document.createElement('div');
-    tag.className = 'xp-float-tag';
-    tag.textContent = `+${amount} XP`;
-    tag.style.left = `${rect.left + rect.width / 2}px`;
-    tag.style.top = `${rect.top - 10}px`;
-    document.body.appendChild(tag);
+    try {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const tag = document.createElement('div');
+      tag.className = 'xp-float-tag';
+      tag.textContent = `+${amount} XP`;
+      tag.style.left = `${rect.left + rect.width / 2}px`;
+      tag.style.top = `${rect.top - 10}px`;
+      document.body.appendChild(tag);
 
-    setTimeout(() => {
-      if (tag.parentNode) tag.parentNode.removeChild(tag);
-    }, 1000);
-  }
-
-  static updateUIStats() {
-    const stats = AppStorage.getUserStats();
-    const levelBadge = document.getElementById('user-level-badge');
-    const xpText = document.getElementById('user-xp-text');
-    const xpBar = document.getElementById('user-xp-bar');
-    const userTitle = document.getElementById('user-level-title');
-
-    if (levelBadge) levelBadge.textContent = `Lv. ${stats.level}`;
-    if (xpText) xpText.textContent = `${stats.xp} / ${stats.xpToNextLevel} XP`;
-    if (xpBar) {
-      const percentage = Math.min(100, Math.round((stats.xp / stats.xpToNextLevel) * 100));
-      xpBar.style.width = `${percentage}%`;
-    }
-    if (userTitle) userTitle.textContent = stats.title;
-  }
-
-  static checkBadges() {
-    const habits = AppStorage.getHabits();
-    const goals = AppStorage.getGoals();
-    const badges = AppStorage.getBadges();
-    let newlyUnlocked = false;
-
-    const maxStreak = Math.max(...habits.map(h => h.streak), 0);
-    const hasCompletedGoal = goals.some(g => g.milestones.length > 0 && g.milestones.every(m => m.done));
-
-    badges.forEach(b => {
-      if (!b.unlocked) {
-        if (b.id === 'streak_3' && maxStreak >= 3) {
-          b.unlocked = true;
-          b.unlockedAt = new Date().toISOString().slice(0, 10);
-          newlyUnlocked = b;
-        } else if (b.id === 'streak_7' && maxStreak >= 7) {
-          b.unlocked = true;
-          b.unlockedAt = new Date().toISOString().slice(0, 10);
-          newlyUnlocked = b;
-        } else if (b.id === 'streak_30' && maxStreak >= 30) {
-          b.unlocked = true;
-          b.unlockedAt = new Date().toISOString().slice(0, 10);
-          newlyUnlocked = b;
-        } else if (b.id === 'goal_slayer' && hasCompletedGoal) {
-          b.unlocked = true;
-          b.unlockedAt = new Date().toISOString().slice(0, 10);
-          newlyUnlocked = b;
-        }
-      }
-    });
-
-    if (newlyUnlocked) {
-      AppStorage.saveBadges(badges);
-      SoundEffects.playLevelUp();
-      ConfettiEngine.launch(2500);
-      App.showToast(`🏆 Lencana Baru Terbuka: ${newlyUnlocked.name}!`, 'success');
-      App.renderBadges();
-    }
+      setTimeout(() => {
+        if (tag.parentNode) tag.parentNode.removeChild(tag);
+      }, 1000);
+    } catch (e) {}
   }
 }
+
+// Attach globally
+window.SoundEffects = SoundEffects;
+window.ConfettiEngine = ConfettiEngine;
+window.GamificationManager = GamificationManager;

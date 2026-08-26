@@ -17,6 +17,8 @@ const STORAGE_KEYS = {
 
 const DEFAULT_PIN = 'ARMANT';
 const DEFAULT_AI_MODEL = 'gemini-1.5-flash';
+const DEFAULT_SUPABASE_URL = 'https://lzrcvtzigehjltbtgrdi.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6cmN2dHppZ2Voamx0YnRncmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzQ5MTAsImV4cCI6MjEwMzMxMDkxMH0.OoRVz3p1kuDYtCzhOoUpod-4f_3hy2A-Mfn_UJ_YnQQ';
 
 const DEFAULT_HABITS = [
   {
@@ -302,8 +304,8 @@ class StorageManager {
 
   static getSupabaseConfig() {
     return {
-      url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || '',
-      key: localStorage.getItem(STORAGE_KEYS.SUPABASE_ANON_KEY) || ''
+      url: localStorage.getItem(STORAGE_KEYS.SUPABASE_URL) || DEFAULT_SUPABASE_URL,
+      key: localStorage.getItem(STORAGE_KEYS.SUPABASE_ANON_KEY) || DEFAULT_SUPABASE_ANON_KEY
     };
   }
 
@@ -438,3 +440,6 @@ class StorageManager {
     }
   }
 }
+
+// Attach globally
+window.StorageManager = StorageManager;
