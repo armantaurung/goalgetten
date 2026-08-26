@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="primary" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <linearGradient id="orange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="110" fill="url(#bg)" />
+  <rect width="504" height="504" x="4" y="4" rx="106" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="4" />
+
+  <!-- Outer Target Ring -->
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#primary)" stroke-width="24" opacity="0.4" />
+  
+  <!-- Middle Target Ring -->
+  <circle cx="256" cy="256" r="110" fill="none" stroke="url(#primary)" stroke-width="28" />
+  
+  <!-- Inner Bullseye -->
+  <circle cx="256" cy="256" r="50" fill="url(#orange)" />
+
+  <!-- Arrow Hit -->
+  <path d="M120 392 L245 267" stroke="#ffffff" stroke-width="14" stroke-linecap="round" />
+  <polygon points="100,412 110,380 142,412" fill="#38bdf8" />
+  
+  <!-- Glow Sparkles -->
+  <circle cx="340" cy="170" r="12" fill="#38bdf8" />
+  <circle cx="370" cy="210" r="6" fill="#10b981" />
+  <circle cx="160" cy="180" r="8" fill="#f59e0b" />
+</svg>
