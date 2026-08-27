@@ -3129,4 +3129,116 @@ kbd {
   box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
 }
 
+/* ==========================================================================
+   9. Fast Google Login UI Styles & Avatars
+   ========================================================================== */
+
+/* Top Navbar 1-Click Google Button */
+.btn-google-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 0.38rem 0.85rem;
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-google-nav:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: #4285F4;
+  box-shadow: 0 0 12px rgba(66, 133, 244, 0.35);
+  transform: translateY(-1px);
+}
+
+/* Google Hero Card in Auth Modal */
+.google-hero-card {
+  margin-bottom: 1.25rem;
+}
+
+.btn-google-hero {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border: 1.5px solid rgba(66, 133, 244, 0.45);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  color: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), 0 0 12px rgba(66, 133, 244, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-google-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 10% 50%, rgba(66, 133, 244, 0.2) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.btn-google-hero:hover {
+  border-color: #4285F4;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%);
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.35);
+  transform: translateY(-1.5px);
+}
+
+.google-hero-texts {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.google-hero-title {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.google-hero-sub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.2;
+}
+
+.google-hero-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-full);
+  padding: 0.15rem 0.45rem;
+  white-space: nowrap;
+}
+
+/* User Avatar Image */
+.user-avatar-img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  flex-shrink: 0;
+}
+
+
 

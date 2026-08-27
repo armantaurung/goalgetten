@@ -52,6 +52,15 @@ class AuthManager {
   static async checkSession() {
     this.initSupabaseClient();
 
+    // Clean OAuth hash from URL after redirect
+    if (window.location.hash && window.location.hash.includes('access_token')) {
+      setTimeout(() => {
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+        }
+      }, 500);
+    }
+
     if (this.client) {
       try {
         const { data: { session }, error } = await this.client.auth.getSession();
@@ -60,24 +69,30 @@ class AuthManager {
           StorageManager.setUserSession(session);
           await this.fetchProfile();
           await this.pullCloudData(false);
+          this.closeAuthModal();
         } else {
           this.currentUser = null;
           StorageManager.setUserSession(null);
         }
 
-        // Listen for auth state changes
+        // Listen for auth state changes (e.g. after Google OAuth popup/redirect)
         this.client.auth.onAuthStateChange(async (event, session) => {
           if (event === 'SIGNED_IN' && session) {
             this.currentUser = session.user;
             StorageManager.setUserSession(session);
             await this.fetchProfile();
             await this.pullCloudData(true);
+            this.closeAuthModal();
+            const name = this.currentProfile?.display_name || session.user.email?.split('@')[0] || 'User';
+            if (window.GoalGettenApp) {
+              GoalGettenApp.showToast(`🎉 Berhasil Masuk dengan Akun Google! Selamat datang, ${name}!`, 'success', 5000);
+            }
           } else if (event === 'SIGNED_OUT') {
             this.currentUser = null;
             this.currentProfile = null;
             StorageManager.setUserSession(null);
             this.updateUIStatus();
-            GoalGettenApp.renderAll();
+            if (window.GoalGettenApp) GoalGettenApp.renderAll();
           }
         });
       } catch (e) {
@@ -89,7 +104,8 @@ class AuthManager {
       if (cached && cached.user) {
         this.currentUser = cached.user;
         this.currentProfile = {
-          display_name: cached.user.user_metadata?.full_name || cached.user.email?.split('@')[0] || 'User',
+          display_name: cached.user.user_metadata?.full_name || cached.user.user_metadata?.name || cached.user.email?.split('@')[0] || 'User',
+          avatar_url: cached.user.user_metadata?.avatar_url || cached.user.user_metadata?.picture || null,
           email: cached.user.email,
           level: 1,
           xp: 0
@@ -106,6 +122,7 @@ class AuthManager {
   static async fetchProfile() {
     if (!this.client || !this.currentUser) return;
     try {
+      const meta = this.currentUser.user_metadata || {};
       const { data, error } = await this.client
         .from('profiles')
         .select('*')
@@ -113,10 +130,15 @@ class AuthManager {
         .single();
 
       if (data && !error) {
-        this.currentProfile = data;
+        this.currentProfile = {
+          ...data,
+          avatar_url: data.avatar_url || meta.avatar_url || meta.picture || null,
+          display_name: data.display_name || meta.full_name || meta.name || this.currentUser.email.split('@')[0]
+        };
       } else {
         this.currentProfile = {
-          display_name: this.currentUser.user_metadata?.full_name || this.currentUser.email.split('@')[0],
+          display_name: meta.full_name || meta.name || this.currentUser.email.split('@')[0],
+          avatar_url: meta.avatar_url || meta.picture || null,
           email: this.currentUser.email,
           level: 1,
           xp: 0
@@ -263,23 +285,44 @@ class AuthManager {
   }
 
   static async signInWithGoogle() {
+    this.initSupabaseClient();
+
+    // Check if on file:// protocol (local file)
+    if (window.location.protocol === 'file:') {
+      GoalGettenApp.showConfirm(
+        '💡 Login Google resmi membutuhkan domain web live.\n\nApakah Anda ingin membuka versi Live di https://goalgetten.vercel.app/ untuk login Google sekarang?',
+        () => {
+          window.open('https://goalgetten.vercel.app/', '_blank');
+        },
+        'Buka Versi Live (Vercel)'
+      );
+      return;
+    }
+
     if (!this.client) {
       this.closeAuthModal();
       this.openCloudConfigModal();
-      GoalGettenApp.showToast('ℹ️ Masukkan konfigurasi Supabase Anda terlebih dahulu.', 'info');
+      GoalGettenApp.showToast('ℹ️ Masukkan URL & Key Supabase terlebih dahulu untuk menghubungkan database cloud.', 'info');
       return;
     }
 
     try {
+      GoalGettenApp.showToast('🚀 Mengarahkan ke Akun Google...', 'info', 2500);
+      const redirectUrl = window.location.origin + window.location.pathname;
       const { data, error } = await this.client.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.href
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
         }
       });
       if (error) throw error;
     } catch (err) {
-      GoalGettenApp.showToast(`⚠️ Login Google gagal: ${err.message}`, 'error');
+      console.error('Google Auth Error:', err);
+      GoalGettenApp.showToast(`⚠️ Login Google gagal: ${err.message || err}`, 'error', 5000);
     }
   }
 
@@ -532,13 +575,14 @@ class AuthManager {
 
     const isOnline = Boolean(this.currentUser);
     const displayName = this.currentProfile?.display_name || this.currentUser?.email?.split('@')[0] || 'Mode Tamu (Offline)';
+    const avatarUrl = this.currentProfile?.avatar_url || null;
     const initial = displayName.charAt(0).toUpperCase();
 
     if (navUserPill) {
       if (isOnline) {
         navUserPill.innerHTML = `
-          <div class="user-pill-auth online" onclick="AuthManager.openUserDropdown(event)">
-            <div class="user-avatar-circle">${initial}</div>
+          <div class="user-pill-auth online" onclick="AuthManager.openUserDropdown(event)" title="Akun: ${displayName} • Klik untuk menu profil">
+            ${avatarUrl ? `<img src="${avatarUrl}" class="user-avatar-img" alt="${displayName}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="user-avatar-circle" style="display: none;">${initial}</div>` : `<div class="user-avatar-circle">${initial}</div>`}
             <div class="user-pill-meta">
               <span class="user-pill-name">${displayName}</span>
               <span class="user-pill-status">🟢 Cloud Sync Aktif</span>
@@ -548,8 +592,17 @@ class AuthManager {
         `;
       } else {
         navUserPill.innerHTML = `
-          <button class="btn btn-secondary btn-sm" onclick="AuthManager.openAuthModal('login')" style="border-radius: var(--radius-full); padding: 0.35rem 0.85rem;">
-            <span>👤 Masuk / Daftar</span>
+          <button class="btn btn-google-nav" onclick="AuthManager.signInWithGoogle()" title="Masuk cepat 1-klik dengan Akun Google">
+            <svg width="17" height="17" viewBox="0 0 24 24" style="flex-shrink: 0;">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Masuk Google</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="AuthManager.openAuthModal('login')" title="Masuk via Email atau Pengaturan Cloud" style="border-radius: var(--radius-full); padding: 0.35rem 0.65rem; font-size: 0.78rem;">
+            <span>Email / Opsi</span>
           </button>
         `;
       }
