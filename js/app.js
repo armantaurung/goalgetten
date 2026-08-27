@@ -353,9 +353,19 @@ class GoalGettenApp {
       const catColor = h.color || '#8b5cf6';
 
       return `
-        <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
+        <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};" data-habit-id="${h.id}">
           <div class="habit-row-top">
             <div class="habit-main-info">
+              <div class="habit-drag-handle" title="Tarik / geser untuk mengatur urutan habit (Drag & Drop)" aria-label="Geser urutan">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="8" cy="5" r="2.2"/>
+                  <circle cx="16" cy="5" r="2.2"/>
+                  <circle cx="8" cy="12" r="2.2"/>
+                  <circle cx="16" cy="12" r="2.2"/>
+                  <circle cx="8" cy="19" r="2.2"/>
+                  <circle cx="16" cy="19" r="2.2"/>
+                </svg>
+              </div>
               <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
                 ${isDone ? '✓' : ''}
               </div>
@@ -387,6 +397,8 @@ class GoalGettenApp {
         </div>
       `;
     }).join('');
+
+    this.initHabitDragAndDrop('#fokus-habits-list');
   }
 
   static renderSideMilestones() {
@@ -552,9 +564,19 @@ class GoalGettenApp {
 
           <div class="matrix-habits-list">
             ${catHabits.map(h => `
-              <div class="habit-card-v2" style="--habit-color: ${catColor}; margin-bottom: 0;">
+              <div class="habit-card-v2" style="--habit-color: ${catColor}; margin-bottom: 0;" data-habit-id="${h.id}">
                 <div class="habit-row-top">
                   <div class="habit-main-info">
+                    <div class="habit-drag-handle" title="Tarik / geser untuk mengatur urutan habit (Drag & Drop)" aria-label="Geser urutan">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <circle cx="8" cy="5" r="2.2"/>
+                        <circle cx="16" cy="5" r="2.2"/>
+                        <circle cx="8" cy="12" r="2.2"/>
+                        <circle cx="16" cy="12" r="2.2"/>
+                        <circle cx="8" cy="19" r="2.2"/>
+                        <circle cx="16" cy="19" r="2.2"/>
+                      </svg>
+                    </div>
                     <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
                       ${(h.history && h.history[this.todayIso]) ? '✓' : ''}
                     </div>
@@ -599,6 +621,8 @@ class GoalGettenApp {
         </div>
       `;
     }).join('');
+
+    this.initHabitDragAndDrop('#matriks-habits-container .matrix-habits-list');
   }
 
   // =========================================================================
@@ -2274,6 +2298,166 @@ class GoalGettenApp {
       this.showToast('Gagal menyalin otomatis. Silakan salin manual.', 'warning');
     }
     document.body.removeChild(ta);
+  }
+
+  // =========================================================================
+  // 14. Drag & Drop Habit Reordering System (Desktop & Mobile Touch)
+  // =========================================================================
+  static draggedHabitId = null;
+
+  static initHabitDragAndDrop(containerSelector) {
+    const containers = typeof containerSelector === 'string' ? document.querySelectorAll(containerSelector) : [containerSelector];
+    
+    containers.forEach(container => {
+      if (!container) return;
+      const cards = container.querySelectorAll('.habit-card-v2[data-habit-id]');
+
+      cards.forEach(card => {
+        const habitId = card.getAttribute('data-habit-id');
+        const handle = card.querySelector('.habit-drag-handle');
+
+        // Desktop HTML5 Drag and Drop
+        card.setAttribute('draggable', 'true');
+
+        card.addEventListener('dragstart', (e) => {
+          // Do not start drag if user is clicking button, input or checkbox
+          if (e.target.closest('button') || e.target.closest('.custom-checkbox') || e.target.closest('input') || e.target.closest('select') || e.target.closest('a')) {
+            e.preventDefault();
+            return;
+          }
+          this.draggedHabitId = habitId;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', habitId);
+        });
+
+        card.addEventListener('dragend', () => {
+          this.draggedHabitId = null;
+          card.classList.remove('dragging');
+          document.querySelectorAll('.habit-card-v2').forEach(c => {
+            c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+          });
+        });
+
+        card.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          if (!this.draggedHabitId || this.draggedHabitId === habitId) return;
+          e.dataTransfer.dropEffect = 'move';
+
+          const rect = card.getBoundingClientRect();
+          const midY = rect.top + rect.height / 2;
+          if (e.clientY < midY) {
+            card.classList.add('drag-over-top');
+            card.classList.remove('drag-over-bottom');
+          } else {
+            card.classList.add('drag-over-bottom');
+            card.classList.remove('drag-over-top');
+          }
+        });
+
+        card.addEventListener('dragleave', () => {
+          card.classList.remove('drag-over-top', 'drag-over-bottom');
+        });
+
+        card.addEventListener('drop', (e) => {
+          e.preventDefault();
+          card.classList.remove('drag-over-top', 'drag-over-bottom');
+          const sourceId = this.draggedHabitId || e.dataTransfer.getData('text/plain');
+          const targetId = habitId;
+
+          if (sourceId && targetId && sourceId !== targetId) {
+            const rect = card.getBoundingClientRect();
+            const isBelow = e.clientY >= (rect.top + rect.height / 2);
+            GoalGettenApp.reorderHabits(sourceId, targetId, isBelow);
+          }
+        });
+
+        // Mobile Touch Reorder Events on Drag Handle
+        if (handle) {
+          handle.addEventListener('touchstart', (e) => {
+            this.draggedHabitId = habitId;
+            card.classList.add('dragging');
+            if (navigator.vibrate) {
+              try { navigator.vibrate(25); } catch (err) {}
+            }
+          }, { passive: true });
+
+          handle.addEventListener('touchmove', (e) => {
+            if (!this.draggedHabitId) return;
+            const touch = e.touches[0];
+            
+            // Find element under touch point
+            const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetCard = elemBelow ? elemBelow.closest('.habit-card-v2[data-habit-id]') : null;
+
+            document.querySelectorAll('.habit-card-v2').forEach(c => {
+              c.classList.remove('drag-over-top', 'drag-over-bottom');
+            });
+
+            if (targetCard && targetCard !== card) {
+              const rect = targetCard.getBoundingClientRect();
+              if (touch.clientY < rect.top + rect.height / 2) {
+                targetCard.classList.add('drag-over-top');
+              } else {
+                targetCard.classList.add('drag-over-bottom');
+              }
+            }
+          }, { passive: true });
+
+          handle.addEventListener('touchend', (e) => {
+            if (!this.draggedHabitId) return;
+            const touch = e.changedTouches[0];
+            const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetCard = elemBelow ? elemBelow.closest('.habit-card-v2[data-habit-id]') : null;
+
+            document.querySelectorAll('.habit-card-v2').forEach(c => {
+              c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+            });
+
+            if (targetCard) {
+              const targetId = targetCard.getAttribute('data-habit-id');
+              if (targetId && targetId !== this.draggedHabitId) {
+                const rect = targetCard.getBoundingClientRect();
+                const isBelow = touch.clientY >= (rect.top + rect.height / 2);
+                GoalGettenApp.reorderHabits(this.draggedHabitId, targetId, isBelow);
+              }
+            }
+
+            this.draggedHabitId = null;
+          });
+        }
+      });
+    });
+  }
+
+  static reorderHabits(sourceId, targetId, isBelow = false) {
+    const habits = StorageManager.getHabits();
+    const fromIdx = habits.findIndex(h => h.id === sourceId);
+    const toIdx = habits.findIndex(h => h.id === targetId);
+
+    if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return;
+
+    const [moved] = habits.splice(fromIdx, 1);
+    
+    // Find target index in modified array
+    const targetIdxInNewArray = habits.findIndex(h => h.id === targetId);
+    const insertIdx = isBelow ? targetIdxInNewArray + 1 : targetIdxInNewArray;
+
+    habits.splice(insertIdx, 0, moved);
+    StorageManager.saveHabits(habits);
+
+    if (window.SoundEffects && SoundEffects.playPop) {
+      SoundEffects.playPop();
+    }
+    if (window.GoalGettenApp && GoalGettenApp.showToast) {
+      GoalGettenApp.showToast('✨ Urutan habit berhasil diperbarui!', 'info', 1800);
+    }
+
+    if (window.AuthManager && AuthManager.currentUser && AuthManager.syncLocalToCloud) {
+      AuthManager.syncLocalToCloud().catch(() => {});
+    }
+
+    GoalGettenApp.renderAll();
   }
 }
 
