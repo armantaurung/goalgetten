@@ -1,5 +1,5 @@
 /**
- * GoalGetteng 🎯 Authentication & Cloud Sync Engine
+ * GoalGetten 🎯 Authentication & Cloud Sync Engine
  * Supabase Backend-as-a-Service (PostgreSQL + Real-time Auth)
  */
 
@@ -77,7 +77,7 @@ class AuthManager {
             this.currentProfile = null;
             StorageManager.setUserSession(null);
             this.updateUIStatus();
-            GoalGettengApp.renderAll();
+            GoalGettenApp.renderAll();
           }
         });
       } catch (e) {
@@ -115,7 +115,6 @@ class AuthManager {
       if (data && !error) {
         this.currentProfile = data;
       } else {
-        // Fallback default profile
         this.currentProfile = {
           display_name: this.currentUser.user_metadata?.full_name || this.currentUser.email.split('@')[0],
           email: this.currentUser.email,
@@ -139,12 +138,12 @@ class AuthManager {
     const btn = document.getElementById('btn-auth-submit');
 
     if (!email || !password) {
-      alert('Silakan masukkan email dan kata sandi.');
+      GoalGettenApp.showToast('Silakan masukkan email dan kata sandi.', 'warning');
       return;
     }
 
     if (password.length < 6) {
-      alert('Kata sandi minimal 6 karakter.');
+      GoalGettenApp.showToast('Kata sandi minimal 6 karakter.', 'warning');
       return;
     }
 
@@ -156,7 +155,6 @@ class AuthManager {
     try {
       if (mode === 'register') {
         if (this.client) {
-          // Register to Supabase Cloud
           const { data, error } = await this.client.auth.signUp({
             email: email,
             password: password,
@@ -190,10 +188,9 @@ class AuthManager {
             };
           }
           this.closeAuthModal();
-          alert(`🎉 Pendaftaran Berhasil! Selamat datang di GoalGetteng, ${name || email}! Akun Cloud Anda telah aktif.`);
+          GoalGettenApp.showToast(`🎉 Pendaftaran Berhasil! Selamat datang, ${name || email}!`, 'success', 5000);
           await this.offerLocalDataMigration();
         } else {
-          // Instant Local Multi-User Registration
           const localUser = StorageManager.registerLocalAccount(name, email, password);
           const session = {
             user: {
@@ -212,12 +209,10 @@ class AuthManager {
             xp: 0
           };
           this.closeAuthModal();
-          alert(`🎉 Pendaftaran Berhasil! Selamat datang, ${localUser.name}! Akun Anda telah dibuat dan aktif.`);
+          GoalGettenApp.showToast(`🎉 Pendaftaran Berhasil! Selamat datang, ${localUser.name}!`, 'success', 4500);
         }
       } else {
-        // Login mode
         if (this.client) {
-          // Try Supabase Login
           const { data, error } = await this.client.auth.signInWithPassword({
             email: email,
             password: password
@@ -229,10 +224,9 @@ class AuthManager {
           StorageManager.setUserSession(data.session);
           await this.fetchProfile();
           this.closeAuthModal();
-          alert(`👋 Selamat datang kembali, ${this.currentProfile?.display_name || email}!`);
+          GoalGettenApp.showToast(`👋 Selamat datang kembali, ${this.currentProfile?.display_name || email}!`, 'success', 4500);
           await this.pullCloudData(true);
         } else {
-          // Local Multi-User Login
           const localUser = StorageManager.loginLocalAccount(email, password);
           const session = {
             user: {
@@ -251,14 +245,14 @@ class AuthManager {
             xp: 0
           };
           this.closeAuthModal();
-          alert(`👋 Selamat datang kembali, ${localUser.name}!`);
+          GoalGettenApp.showToast(`👋 Selamat datang kembali, ${localUser.name}!`, 'success', 4500);
         }
       }
 
-      GoalGettengApp.renderAll();
+      GoalGettenApp.renderAll();
     } catch (err) {
       console.error('Auth Error:', err);
-      alert(`⚠️ ${err.message || 'Terjadi kesalahan saat memproses akun'}`);
+      GoalGettenApp.showToast(`⚠️ ${err.message || 'Terjadi kesalahan saat memproses akun'}`, 'error', 5000);
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -272,7 +266,7 @@ class AuthManager {
     if (!this.client) {
       this.closeAuthModal();
       this.openCloudConfigModal();
-      alert('ℹ️ Silakan masukkan konfigurasi Supabase Anda terlebih dahulu.');
+      GoalGettenApp.showToast('ℹ️ Masukkan konfigurasi Supabase Anda terlebih dahulu.', 'info');
       return;
     }
 
@@ -285,24 +279,24 @@ class AuthManager {
       });
       if (error) throw error;
     } catch (err) {
-      alert(`⚠️ Login Google gagal: ${err.message}`);
+      GoalGettenApp.showToast(`⚠️ Login Google gagal: ${err.message}`, 'error');
     }
   }
 
-  static async signOut() {
-    if (!confirm('Apakah Anda yakin ingin keluar dari akun ini?')) return;
+  static signOut() {
+    GoalGettenApp.showConfirm('Apakah Anda yakin ingin keluar dari akun ini?', async () => {
+      if (this.client) {
+        await this.client.auth.signOut().catch(() => {});
+      }
 
-    if (this.client) {
-      await this.client.auth.signOut().catch(() => {});
-    }
+      this.currentUser = null;
+      this.currentProfile = null;
+      StorageManager.setUserSession(null);
+      this.updateUIStatus();
+      GoalGettenApp.renderAll();
 
-    this.currentUser = null;
-    this.currentProfile = null;
-    StorageManager.setUserSession(null);
-    this.updateUIStatus();
-    GoalGettengApp.renderAll();
-
-    alert('👋 Anda telah keluar dari akun cloud (kembali ke Mode Tamu Lokal).');
+      GoalGettenApp.showToast('👋 Anda telah keluar dari akun cloud (kembali ke Mode Tamu Lokal).', 'info');
+    });
   }
 
   // =========================================================================
@@ -313,9 +307,9 @@ class AuthManager {
     const localGoals = StorageManager.getGoals();
 
     if (localHabits.length > 0 || localGoals.length > 0) {
-      if (confirm('Apakah Anda ingin mengunggah data Habit & Goal lokal Anda ke akun cloud baru ini agar tersinkron di semua perangkat?')) {
+      GoalGettenApp.showConfirm('Unggah data Habit & Goal lokal Anda ke akun cloud baru ini agar tersinkron di semua perangkat?', async () => {
         await this.syncLocalToCloud();
-      }
+      });
     }
   }
 
@@ -358,7 +352,6 @@ class AuthManager {
           streak: h.streak || 0
         });
 
-        // Sync history logs
         if (h.history) {
           for (const [dateIso, done] of Object.entries(h.history)) {
             if (done) {
@@ -389,19 +382,16 @@ class AuthManager {
     try {
       const userId = this.currentUser.id;
 
-      // 1. Fetch Goals
       const { data: cloudGoals, error: gErr } = await this.client
         .from('goals')
         .select('*')
         .eq('user_id', userId);
 
-      // 2. Fetch Habits
       const { data: cloudHabits, error: hErr } = await this.client
         .from('habits')
         .select('*')
         .eq('user_id', userId);
 
-      // 3. Fetch Habit Logs
       const { data: cloudLogs, error: lErr } = await this.client
         .from('habit_logs')
         .select('*')
@@ -421,7 +411,6 @@ class AuthManager {
       }
 
       if (!hErr && cloudHabits && cloudHabits.length > 0) {
-        // Build history map from logs
         const logsMap = {};
         if (cloudLogs) {
           cloudLogs.forEach(l => {
@@ -447,14 +436,13 @@ class AuthManager {
       }
 
       this.showSyncToast('✅ Data Cloud Siap & Tersinkron!');
-      GoalGettengApp.renderAll();
+      GoalGettenApp.renderAll();
     } catch (err) {
       console.warn('Gagal memuat data cloud:', err);
       this.showSyncToast('⚠️ Mode offline aktif (menggunakan data lokal)');
     }
   }
 
-  // Real-time Push on Single Actions
   static async pushHabitToggle(habitId, dateIso, isDone) {
     if (!this.client || !this.currentUser) return;
     const userId = this.currentUser.id;
@@ -540,7 +528,6 @@ class AuthManager {
   static updateUIStatus() {
     const navUserPill = document.getElementById('top-user-auth-pill');
     const sidebarCloudBadge = document.getElementById('sidebar-cloud-badge');
-    const cloudStatusBadge = document.querySelector('.cloud-status-badge');
     const topCloudPill = document.querySelector('.cloud-pill-top');
 
     const isOnline = Boolean(this.currentUser);
@@ -679,13 +666,13 @@ class AuthManager {
       if (tabLogin) tabLogin.classList.remove('active');
       if (nameGroup) nameGroup.style.display = 'block';
       if (submitBtn) submitBtn.innerHTML = `<span>Daftar Akun Baru</span>`;
-      if (title) title.textContent = 'Daftar Akun GoalGetteng 🚀';
+      if (title) title.textContent = 'Daftar Akun GoalGetten 🚀';
     } else {
       if (tabLogin) tabLogin.classList.add('active');
       if (tabRegister) tabRegister.classList.remove('active');
       if (nameGroup) nameGroup.style.display = 'none';
       if (submitBtn) submitBtn.innerHTML = `<span>Masuk Sekarang</span>`;
-      if (title) title.textContent = 'Masuk ke Akun GoalGetteng 🎯';
+      if (title) title.textContent = 'Masuk ke Akun GoalGetten 🎯';
     }
   }
 
@@ -714,7 +701,7 @@ class AuthManager {
     this.closeCloudConfigModal();
     this.updateUIStatus();
 
-    alert('💾 Konfigurasi Supabase berhasil disimpan!');
+    GoalGettenApp.showToast('💾 Konfigurasi Supabase berhasil disimpan!', 'success');
     this.checkSession();
   }
 }

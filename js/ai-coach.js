@@ -1,5 +1,5 @@
 /**
- * GoalGetteng 🎯 AI Coach & Smart Generator Engine
+ * GoalGetten 🎯 AI Coach & Smart Generator Engine
  * Dual Engine: Google Gemini API (Online) + Smart Heuristic Engine (Offline)
  */
 
@@ -58,6 +58,9 @@ class AICoachManager {
         this.closeSettingsModal();
         this.updateEngineBadge();
         this.addSystemMessage('🔑 Pengaturan AI berhasil disimpan! Engine siap digunakan.');
+        if (window.GoalGettenApp) {
+          GoalGettenApp.showToast('🔑 Pengaturan AI Gemini berhasil disimpan!', 'success');
+        }
       });
     }
   }
@@ -148,7 +151,6 @@ class AICoachManager {
   }
 
   static saveHistory() {
-    // Keep last 30 messages
     if (this.conversation.length > 30) {
       this.conversation = this.conversation.slice(-30);
     }
@@ -156,12 +158,13 @@ class AICoachManager {
   }
 
   static resetConversation() {
-    if (confirm('Bersihkan riwayat percakapan dengan AI Coach?')) {
+    GoalGettenApp.showConfirm('Bersihkan riwayat percakapan dengan AI Coach?', () => {
       this.conversation = [];
       StorageManager.clearAiHistory();
       this.sendInitialWelcome();
       this.renderMessages();
-    }
+      GoalGettenApp.showToast('🔄 Riwayat percakapan AI telah dibersihkan', 'info');
+    });
   }
 
   static sendInitialWelcome() {
@@ -170,7 +173,7 @@ class AICoachManager {
     const todayIso = new Date().toISOString().slice(0, 10);
     const completedToday = habits.filter(h => h.history && h.history[todayIso]).length;
 
-    let text = `Halo! Saya **AI Coach GoalGetteng** 🎯 asisten pribadi Anda untuk produktivitas, pembentukan kebiasaan, dan pencapaian target.\n\n` +
+    let text = `Halo! Saya **AI Coach GoalGetten** 🎯 asisten pribadi Anda untuk produktivitas, pembentukan kebiasaan, dan pencapaian target.\n\n` +
       `Saat ini Anda memiliki **${goals.length} Goal Utama** dan **${habits.length} Habit** terdaftar ` +
       `(${completedToday}/${habits.length} selesai hari ini).\n\n` +
       `Ada yang bisa saya bantu untuk meningkatkan fokus Anda hari ini?`;
@@ -226,14 +229,12 @@ class AICoachManager {
       `;
     }).join('');
 
-    // Scroll to bottom
     container.scrollTop = container.scrollHeight;
   }
 
   static formatMessageText(rawText) {
     if (!rawText) return '';
 
-    // Parse [ADD_HABIT: title | category | duration | plan | goal] tags
     let text = rawText.replace(/\[ADD_HABIT:\s*([^\|]+)\|([^\|]+)\|([^\|]+)\|([^\|]+)\|?([^\]]*)\]/gi, (match, title, category, duration, plan, goal) => {
       const cleanTitle = (title || '').trim();
       const cleanCat = (category || 'Spiritual').trim();
@@ -241,7 +242,6 @@ class AICoachManager {
       const cleanPlan = (plan || '').trim();
       const cleanGoal = (goal || '').trim();
 
-      // Escape quotes for onclick
       const encTitle = cleanTitle.replace(/'/g, "\\'");
       const encCat = cleanCat.replace(/'/g, "\\'");
       const encPlan = cleanPlan.replace(/'/g, "\\'");
@@ -264,7 +264,6 @@ class AICoachManager {
       `;
     });
 
-    // Basic markdown conversion: bold, code, lists, linebreaks
     text = text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -284,7 +283,6 @@ class AICoachManager {
 
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Push User message
     this.conversation.push({
       role: 'user',
       text: userText.trim(),
@@ -301,10 +299,8 @@ class AICoachManager {
       let replyText = '';
 
       if (apiKey) {
-        // Try Gemini API
         replyText = await this.callGeminiAPI(userText);
       } else {
-        // Use Smart Offline Heuristic Engine
         await this.simulateTypingDelay(600);
         replyText = this.generateLocalHeuristicReply(userText);
       }
@@ -326,7 +322,6 @@ class AICoachManager {
       console.error('AI Coach Error:', err);
       this.hideTypingIndicator();
 
-      // Fallback to local heuristic if API fails
       const fallbackReply = this.generateLocalHeuristicReply(userText);
       this.conversation.push({
         role: 'assistant',
@@ -383,7 +378,6 @@ class AICoachManager {
 
     const systemContext = this.buildUserSystemContext();
 
-    // Prepare contents
     const contents = [
       {
         role: 'user',
@@ -427,7 +421,7 @@ class AICoachManager {
     const goalsSummary = goals.map(g => `- ${g.title} (${g.category}, Target: ${g.targetDate}, Subgoals: ${(g.subgoals || []).filter(s => s.done).length}/${(g.subgoals || []).length})`).join('\n');
 
     return `
-You are the elite "AI Habit & Goal Coach" for the GoalGetteng app.
+You are the elite "AI Habit & Goal Coach" for the GoalGetten app.
 Your mission: Help the user build atomic habits, overcome procrastination, achieve goals, and stay disciplined.
 Language: Indonesian (Warm, motivating, practical, structured, high-energy).
 
@@ -534,7 +528,6 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     const habits = StorageManager.getHabits();
     const goals = StorageManager.getGoals();
 
-    // Find or fallback goal
     let matchedGoal = goals.find(g => (g.title || '').toLowerCase() === (goalTitle || '').toLowerCase());
     if (!matchedGoal && goals.length > 0) {
       matchedGoal = goals[0];
@@ -565,7 +558,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     habits.push(newHabit);
     StorageManager.saveHabits(habits);
 
-    GoalGettengApp.renderAll();
+    GoalGettenApp.renderAll();
 
     if (window.SoundEffects) {
       SoundEffects.playLevelUp();
@@ -575,6 +568,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     }
 
     this.addSystemMessage(`✅ Habit **"${title}"** berhasil ditambahkan ke daftar Anda!`);
+    GoalGettenApp.showToast(`✅ Habit "${title}" berhasil ditambahkan!`, 'success');
   }
 
   // =========================================================================
@@ -608,7 +602,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     const btn = document.getElementById('btn-ai-goal-breakdown');
 
     if (!titleInput || !titleInput.value.trim()) {
-      alert('Ketik Judul Goal terlebih dahulu agar AI dapat menganalisis dan memecahnya!');
+      GoalGettenApp.showToast('Ketik Judul Goal terlebih dahulu agar AI dapat menganalisis!', 'warning');
       if (titleInput) titleInput.focus();
       return;
     }
@@ -624,7 +618,6 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     try {
       await this.simulateTypingDelay(500);
 
-      // Smart heuristic breakdown
       let generatedDesc = '';
       let targetMonths = 3;
 
@@ -651,7 +644,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
       }
 
       if (window.SoundEffects) SoundEffects.playDing();
-      alert(`✨ AI berhasil melengkapi deskripsi dan target waktu untuk "${title}"!`);
+      GoalGettenApp.showToast(`✨ AI berhasil melengkapi deskripsi dan target waktu untuk "${title}"!`, 'success');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -668,7 +661,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     const btn = document.getElementById('btn-ai-habit-plan');
 
     if (!titleInput || !titleInput.value.trim()) {
-      alert('Ketik Nama Kebiasaan / Habit terlebih dahulu!');
+      GoalGettenApp.showToast('Ketik Nama Kebiasaan / Habit terlebih dahulu!', 'warning');
       if (titleInput) titleInput.focus();
       return;
     }
@@ -707,6 +700,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
       }
 
       if (window.SoundEffects) SoundEffects.playPop();
+      GoalGettenApp.showToast(`✨ Rencana If-Then dibuat!`, 'success');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -720,7 +714,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     const btn = document.getElementById('btn-ai-mass-generate');
 
     if (!promptInput || !promptInput.value.trim()) {
-      alert('Ketikkan tujuan atau bidang kebiasaan yang ingin Anda bangun!');
+      GoalGettenApp.showToast('Ketikkan tujuan atau bidang kebiasaan yang ingin Anda bangun!', 'warning');
       if (promptInput) promptInput.focus();
       return;
     }
@@ -762,11 +756,11 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
         );
       }
 
-      GoalGettengApp.parsedMassHabits = generated;
-      GoalGettengApp.renderMassPreviewTable();
+      GoalGettenApp.parsedMassHabits = generated;
+      GoalGettenApp.renderMassPreviewTable();
 
       if (window.SoundEffects) SoundEffects.playDing();
-      alert(`🎉 AI berhasil menghasilkan ${generated.length} habit baru! Silakan tinjau dan klik "Import Habit Terpilih".`);
+      GoalGettenApp.showToast(`🎉 AI menghasilkan ${generated.length} habit baru! Tinjau dan klik Import.`, 'success', 4000);
     } finally {
       if (btn) {
         btn.disabled = false;

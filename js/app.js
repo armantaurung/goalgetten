@@ -1,6 +1,6 @@
 /**
  * GoalGetten 🎯 Master Controller
- * Full Implementation — Habit Tracker, Goal Manager, AI Coach & Mass Upload
+ * Full Implementation — Habit Tracker, Goal Manager, AI Coach, Orange Tree & Focus Timer
  */
 
 class GoalGettenApp {
@@ -16,6 +16,18 @@ class GoalGettenApp {
   static calendarViewMode = 'monthly'; // 'monthly' or 'timeline'
   static calendarYear = new Date().getFullYear();
 
+  // Search and Filtering State
+  static searchQuery = '';
+  static currentStatusFilter = 'all'; // 'all', 'pending', 'completed'
+  static currentCategoryFilter = 'all';
+
+  // Focus Pomodoro Timer State
+  static activeTimerHabit = null;
+  static timerTotalSeconds = 900;
+  static timerRemainingSeconds = 900;
+  static timerInterval = null;
+  static isTimerRunning = false;
+
   static formatIndonesianDate(isoOrDate) {
     const d = new Date(isoOrDate);
     return `${this.INDO_DAYS[d.getDay()]}, ${d.getDate()} ${this.INDO_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
@@ -30,6 +42,7 @@ class GoalGettenApp {
     try { this.bindNavigation(); } catch (e) { console.warn('Nav bind error:', e); }
     try { this.bindModals(); } catch (e) { console.warn('Modals bind error:', e); }
     try { this.bindMassUpload(); } catch (e) { console.warn('Mass upload bind error:', e); }
+    try { this.bindKeyboardShortcuts(); } catch (e) { console.warn('Shortcuts bind error:', e); }
     try {
       if (window.AuthManager) AuthManager.init();
     } catch (e) { console.warn('Auth init error:', e); }
@@ -40,7 +53,7 @@ class GoalGettenApp {
   }
 
   static bindNavigation() {
-    document.querySelectorAll('.nav-item a[data-tab]').forEach(link => {
+    document.querySelectorAll('.nav-list .nav-item a[data-tab]').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
         const tab = link.getAttribute('data-tab');
@@ -98,9 +111,12 @@ class GoalGettenApp {
   }
 
   static renderAll() {
+    if (window.GamificationManager) {
+      GamificationManager.renderLevelWidget();
+    }
     this.renderTopSproutWidget();
     this.renderSummaryStats();
-    // Only render the active tab for performance
+
     switch (this.currentTab) {
       case 'fokus-hari-ini': this.renderFokusHariIni(); break;
       case 'daftar-goal': this.renderDaftarGoals(); break;
@@ -124,9 +140,9 @@ class GoalGettenApp {
     let sproutTitle = 'Tunas Kebiasaan Baru Disiram 🌱';
     let sproutDesc = 'Mulai langkah kecilmu hari ini untuk menumbuhkan kebiasaan hebat!';
 
-    if (percentage >= 100) {
+    if (percentage >= 100 && totalHabits > 0) {
       sproutIcon = '🌳';
-      sproutTitle = 'Pohon Kebiasaanmu Tumbuh Subur & Berbuah Lebat! 🌳';
+      sproutTitle = 'Pohon Kebiasaanmu Tumbuh Subur & Berbuah Lebat! 🍊';
       sproutDesc = 'Luar biasa! Seluruh rutinitas hari ini telah kamu selesaikan dengan sempurna.';
     } else if (percentage >= 50) {
       sproutIcon = '🌿';
@@ -171,6 +187,92 @@ class GoalGettenApp {
   }
 
   // =========================================================================
+  // Search & Filter State Handlers
+  // =========================================================================
+  static handleSearchInput(query) {
+    this.searchQuery = (query || '').toLowerCase().trim();
+    if (this.currentTab === 'fokus-hari-ini') {
+      this.renderFokusHariIniListOnly();
+    } else {
+      this.renderAll();
+    }
+  }
+
+  static setStatusFilter(status) {
+    this.currentStatusFilter = status;
+    document.querySelectorAll('.filter-status-group .filter-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-status') === status);
+    });
+    this.renderFokusHariIniListOnly();
+  }
+
+  static setCategoryFilter(category) {
+    this.currentCategoryFilter = category;
+    const select = document.getElementById('habit-category-filter');
+    if (select) select.value = category;
+    this.renderFokusHariIniListOnly();
+  }
+
+  static getFilteredHabits(habits) {
+    return habits.filter(h => {
+      // Category filter
+      if (this.currentCategoryFilter !== 'all' && h.category !== this.currentCategoryFilter) {
+        return false;
+      }
+
+      // Status filter
+      const isDone = Boolean(h.history && h.history[this.todayIso]);
+      if (this.currentStatusFilter === 'pending' && isDone) return false;
+      if (this.currentStatusFilter === 'completed' && !isDone) return false;
+
+      // Search query
+      if (this.searchQuery) {
+        const titleMatch = (h.title || '').toLowerCase().includes(this.searchQuery);
+        const goalMatch = (h.goalTitle || '').toLowerCase().includes(this.searchQuery);
+        const planMatch = (h.plan || '').toLowerCase().includes(this.searchQuery);
+        const catMatch = (h.category || '').toLowerCase().includes(this.searchQuery);
+        if (!titleMatch && !goalMatch && !planMatch && !catMatch) return false;
+      }
+
+      return true;
+    });
+  }
+
+  static markAllDoneToday() {
+    const habits = StorageManager.getHabits();
+    const filtered = this.getFilteredHabits(habits);
+    const pendingList = filtered.filter(h => !h.history || !h.history[this.todayIso]);
+
+    if (pendingList.length === 0) {
+      this.showToast('Semua habit pada filter saat ini sudah selesai!', 'info');
+      return;
+    }
+
+    this.showConfirm(`Tandai ${pendingList.length} habit yang belum selesai sebagai selesai hari ini?`, () => {
+      let earnedXP = 0;
+      pendingList.forEach(h => {
+        if (!h.history) h.history = {};
+        h.history[this.todayIso] = true;
+        this.recalcStreak(h);
+        earnedXP += 25;
+        if (window.AuthManager) {
+          AuthManager.pushHabitToggle(h.id, this.todayIso, true);
+        }
+      });
+
+      StorageManager.saveHabits(habits);
+      if (window.GamificationManager) {
+        GamificationManager.addXP(earnedXP);
+      }
+      if (window.ConfettiEngine) {
+        ConfettiEngine.launch(3000);
+      }
+      this.showToast(`🎉 Hebat! ${pendingList.length} habit diselesaikan (+${earnedXP} XP)!`, 'success');
+      this.renderAll();
+    });
+  }
+
+  // =========================================================================
   // 3. Tab: Fokus Hari Ini (Checklist & Sub-Goals)
   // =========================================================================
   static renderFokusHariIni() {
@@ -191,7 +293,6 @@ class GoalGettenApp {
     const totalHabits = habits.length;
     const rate = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
 
-    // Calculate week number of year and quarter
     const firstDayOfYear = new Date(year, 0, 1);
     const pastDaysOfYear = (d - firstDayOfYear) / 86400000;
     const weekNum = Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
@@ -224,89 +325,113 @@ class GoalGettenApp {
       heading.innerHTML = `⚡ Kebiasaan yang Harus Dikerjakan Hari Ini <span class="header-date-tag">(${dayNum} ${monthShort} ${year})</span>`;
     }
 
+    this.renderFokusHariIniListOnly();
+    this.renderSideMilestones();
+  }
+
+  static renderFokusHariIniListOnly() {
     const list = document.getElementById('fokus-habits-list');
-    const sideMilestones = document.getElementById('side-milestones-list');
     if (!list) return;
 
-    const goals = StorageManager.getGoals();
+    const allHabits = StorageManager.getHabits();
+    const filteredHabits = this.getFilteredHabits(allHabits);
 
-    if (habits.length === 0) {
+    if (filteredHabits.length === 0) {
       list.innerHTML = `
         <div style="text-align: center; padding: 2.5rem 1.5rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-glass);">
           <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🌱</div>
-          <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.35rem;">Belum ada kebiasaan terdaftar</h4>
-          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Tambahkan kebiasaan harian Anda atau gunakan fitur Mass Upload untuk memulai.</p>
-          <div style="display: flex; justify-content: center; gap: 0.75rem;">
-            <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()">📥 Mass Upload</button>
-            <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
+          <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 0.35rem;">Tidak ada habit yang cocok</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Coba sesuaikan filter kategori, status, atau kata kunci pencarian Anda.</p>
+          <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.resetFilters()">Reset Filter</button>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = filteredHabits.map(h => {
+      const isDone = Boolean(h.history && h.history[this.todayIso]);
+      const catColor = h.color || '#8b5cf6';
+
+      return `
+        <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
+          <div class="habit-row-top">
+            <div class="habit-main-info">
+              <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                ${isDone ? '✓' : ''}
+              </div>
+              <div class="habit-title-area">
+                <h4>${h.title}</h4>
+                <div class="habit-meta-tags">
+                  <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
+                  <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
+                  <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="habit-right-actions">
+              <button class="btn-focus-timer-start" onclick="GoalGettenApp.openFocusTimer('${h.id}')" title="Mulai Focus Pomodoro Timer untuk habit ini">
+                <span>▶️ Mulai</span>
+              </button>
+              <span class="streak-tag">🔥 ${h.streak || 0} d</span>
+              <button class="icon-btn" title="Edit Habit" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">✏️</button>
+              <button class="icon-btn" title="Hapus Habit" onclick="GoalGettenApp.deleteHabit('${h.id}')">🗑️</button>
+            </div>
           </div>
+
+          ${h.plan ? `
+            <div class="implementation-plan-box">
+              <span class="label">Rencana Implementasi:</span> ${h.plan}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  static renderSideMilestones() {
+    const sideMilestones = document.getElementById('side-milestones-list');
+    if (!sideMilestones) return;
+
+    const goals = StorageManager.getGoals();
+    let allSubgoals = [];
+    goals.forEach(g => {
+      (g.subgoals || []).forEach(sg => {
+        allSubgoals.push({ ...sg, goalId: g.id, goalTitle: g.title, goalColor: g.color });
+      });
+    });
+
+    if (allSubgoals.length === 0) {
+      sideMilestones.innerHTML = `
+        <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
+          Belum ada sub-goal aktif. Tambahkan di tab "Daftar Goal Utama".
         </div>
       `;
     } else {
-      list.innerHTML = habits.map(h => {
-        const isDone = Boolean(h.history && h.history[this.todayIso]);
-        const catColor = h.color || '#8b5cf6';
-
-        return `
-          <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};">
-            <div class="habit-row-top">
-              <div class="habit-main-info">
-                <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                  ${isDone ? '✓' : ''}
-                </div>
-                <div class="habit-title-area">
-                  <h4>${h.title}</h4>
-                  <div class="habit-meta-tags">
-                    <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
-                    <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
-                    <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="habit-right-actions">
-                <span class="streak-tag">🔥 ${h.streak || 0} d</span>
-                <button class="icon-btn" title="Edit Habit" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
-                <button class="icon-btn" title="Hapus Habit" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
-              </div>
-            </div>
-
-            ${h.plan ? `
-              <div class="implementation-plan-box">
-                <span class="label">Rencana Implementasi:</span> ${h.plan}
-              </div>
-            ` : ''}
+      sideMilestones.innerHTML = allSubgoals.slice(0, 8).map(sg => `
+        <div class="subgoal-item ${sg.done ? 'done' : ''}">
+          <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettenApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
+          <div class="subgoal-text">
+            <div>${sg.text}</div>
+            <div class="subgoal-date">🎯 ${sg.goalTitle} • Target: ${sg.targetDate || '-'}</div>
           </div>
-        `;
-      }).join('');
+        </div>
+      `).join('');
     }
+  }
 
-    if (sideMilestones) {
-      let allSubgoals = [];
-      goals.forEach(g => {
-        (g.subgoals || []).forEach(sg => {
-          allSubgoals.push({ ...sg, goalId: g.id, goalTitle: g.title, goalColor: g.color });
-        });
-      });
-
-      if (allSubgoals.length === 0) {
-        sideMilestones.innerHTML = `
-          <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
-            Belum ada sub-goal aktif.
-          </div>
-        `;
-      } else {
-        sideMilestones.innerHTML = allSubgoals.slice(0, 6).map(sg => `
-          <div class="subgoal-item ${sg.done ? 'done' : ''}">
-            <input type="checkbox" ${sg.done ? 'checked' : ''} style="margin-top: 3px; accent-color: #8b5cf6;" onchange="GoalGettengApp.toggleSubgoal('${sg.goalId}', '${sg.id}')">
-            <div class="subgoal-text">
-              <div>${sg.text}</div>
-              <div class="subgoal-date">🎯 ${sg.goalTitle} • Target: ${sg.targetDate || '-'}</div>
-            </div>
-          </div>
-        `).join('');
-      }
-    }
+  static resetFilters() {
+    this.searchQuery = '';
+    this.currentStatusFilter = 'all';
+    this.currentCategoryFilter = 'all';
+    const sInput = document.getElementById('habit-search-input');
+    if (sInput) sInput.value = '';
+    const catSelect = document.getElementById('habit-category-filter');
+    if (catSelect) catSelect.value = 'all';
+    document.querySelectorAll('.filter-status-group .filter-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-status') === 'all');
+    });
+    this.renderFokusHariIniListOnly();
   }
 
   // =========================================================================
@@ -318,6 +443,18 @@ class GoalGettenApp {
 
     const goals = StorageManager.getGoals();
     const habits = StorageManager.getHabits();
+
+    if (goals.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1.5rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-glass);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🚀</div>
+          <h4 style="font-size: 1.15rem; color: #fff; margin-bottom: 0.35rem;">Belum ada Goal Utama</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">Buat tujuan jangka panjang dan pecah menjadi milestone terukur.</p>
+          <button class="btn btn-primary" onclick="GoalGettenApp.openAddGoalModal()">+ Buat Goal Baru</button>
+        </div>
+      `;
+      return;
+    }
 
     container.innerHTML = goals.map(g => {
       const subgoals = g.subgoals || [];
@@ -332,7 +469,8 @@ class GoalGettenApp {
             <span class="tag-pill tag-category" style="background: ${g.color}20; color: ${g.color};">${g.category}</span>
             <span class="goal-percent-badge">${progress}%</span>
             <div style="display: flex; gap: 0.25rem;">
-              <button class="icon-btn" onclick="GoalGettengApp.deleteGoal('${g.id}')">🗑️</button>
+              <button class="icon-btn" title="Edit Goal" onclick="GoalGettenApp.openEditGoalModal('${g.id}')">✏️</button>
+              <button class="icon-btn" title="Hapus Goal" onclick="GoalGettenApp.deleteGoal('${g.id}')">🗑️</button>
             </div>
           </div>
 
@@ -345,27 +483,27 @@ class GoalGettenApp {
             <div class="plant-progress-fill" style="width: ${progress}%; background: ${g.color || '#8b5cf6'};"></div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); flex-wrap: wrap; gap: 0.35rem;">
             <span>📅 Target: ${g.targetDate || '-'}</span>
             <span>📌 Sub-Goal: ${doneSg}/${totalSg}</span>
-            <span>⚡ Habit: ${relatedHabitsCount}</span>
+            <span>⚡ Habit Terkait: ${relatedHabitsCount}</span>
           </div>
 
           <div style="border-top: 1px solid var(--border-glass); padding-top: 0.75rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary);">Tujuan-tujuan Kecil (Sub-Goals)</span>
-              <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px;" onclick="GoalGettengApp.promptAddSubgoal('${g.id}')">+ Sub-Goal</button>
+              <button class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: 4px;" onclick="GoalGettenApp.promptAddSubgoal('${g.id}')">+ Sub-Goal</button>
             </div>
 
             <div style="display: flex; flex-direction: column; gap: 0.4rem;">
               ${subgoals.map(s => `
                 <div class="subgoal-item ${s.done ? 'done' : ''}" style="padding: 0.4rem 0.6rem;">
-                  <input type="checkbox" ${s.done ? 'checked' : ''} onchange="GoalGettengApp.toggleSubgoal('${g.id}', '${s.id}')" style="accent-color: ${g.color};">
+                  <input type="checkbox" ${s.done ? 'checked' : ''} onchange="GoalGettenApp.toggleSubgoal('${g.id}', '${s.id}')" style="accent-color: ${g.color};">
                   <div class="subgoal-text" style="font-size: 0.8rem;">
                     <span>${s.text}</span>
                     <span style="font-size: 0.7rem; color: var(--text-muted); display: block;">Deadline: ${s.targetDate || '-'}</span>
                   </div>
-                  <button class="icon-btn" style="width: 22px; height: 22px; font-size: 0.7rem;" onclick="GoalGettengApp.deleteSubgoal('${g.id}', '${s.id}')">✕</button>
+                  <button class="icon-btn" style="width: 22px; height: 22px; font-size: 0.7rem;" onclick="GoalGettenApp.deleteSubgoal('${g.id}', '${s.id}')">✕</button>
                 </div>
               `).join('')}
             </div>
@@ -417,7 +555,7 @@ class GoalGettenApp {
               <div class="habit-card-v2" style="--habit-color: ${catColor}; margin-bottom: 0;">
                 <div class="habit-row-top">
                   <div class="habit-main-info">
-                    <div class="custom-checkbox" onclick="GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
+                    <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
                       ${(h.history && h.history[this.todayIso]) ? '✓' : ''}
                     </div>
                     <div class="habit-title-area">
@@ -433,7 +571,7 @@ class GoalGettenApp {
                     ${past7Days.map(d => {
                       const done = Boolean(h.history && h.history[d.iso]);
                       return `
-                        <div class="day-pill-btn ${done ? 'done' : ''}" style="--cat-color: ${catColor};" onclick="GoalGettengApp.toggleHabit('${h.id}', '${d.iso}')" title="${d.iso}">
+                        <div class="day-pill-btn ${done ? 'done' : ''}" style="--cat-color: ${catColor};" onclick="GoalGettenApp.toggleHabit('${h.id}', '${d.iso}')" title="${d.iso}">
                           <span>${d.dayName}</span>
                           <span>${d.dayNum}</span>
                         </div>
@@ -442,8 +580,11 @@ class GoalGettenApp {
                   </div>
 
                   <div class="habit-right-actions">
-                    <button class="icon-btn" onclick="GoalGettengApp.openEditHabitModal('${h.id}')">✏️</button>
-                    <button class="icon-btn" onclick="GoalGettengApp.deleteHabit('${h.id}')">🗑️</button>
+                    <button class="btn-focus-timer-start" onclick="GoalGettenApp.openFocusTimer('${h.id}')" title="Mulai Timer">
+                      <span>▶️</span>
+                    </button>
+                    <button class="icon-btn" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">✏️</button>
+                    <button class="icon-btn" onclick="GoalGettenApp.deleteHabit('${h.id}')">🗑️</button>
                   </div>
                 </div>
 
@@ -461,7 +602,7 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // 6. Tab: Progres Ringkas Habit (Orange Tree 🍊 / Pohon Jeruk Visualizer)
+  // 6. Tab: Progres Ringkas Habit (Interactive Orange Tree 🍊 Visualizer)
   // =========================================================================
   static renderProgresRingkas() {
     const container = document.getElementById('progres-ringkas-container');
@@ -471,12 +612,14 @@ class GoalGettenApp {
 
     let totalCompletedCheckins = 0;
     let totalMinutesPracticed = 0;
+    let harvestedCount = 0;
 
     habits.forEach(h => {
       if (h.history) {
         const count = Object.values(h.history).filter(Boolean).length;
         totalCompletedCheckins += count;
         totalMinutesPracticed += count * (h.duration || 15);
+        if (count >= 30) harvestedCount++;
       }
     });
 
@@ -485,44 +628,120 @@ class GoalGettenApp {
     const elTotalCheckin = document.getElementById('prog-stat-checkin');
     const elTotalHours = document.getElementById('prog-stat-hours');
     const elTotalHabits = document.getElementById('prog-stat-habits');
+    const elHarvest = document.getElementById('prog-stat-harvest');
 
     if (elTotalCheckin) elTotalCheckin.textContent = `${totalCompletedCheckins} Selesai`;
     if (elTotalHours) elTotalHours.textContent = `${totalHours} Jam`;
     if (elTotalHabits) elTotalHabits.textContent = `${habits.length} Habit`;
+    if (elHarvest) elHarvest.textContent = `${harvestedCount} Panen Jeruk Emas`;
 
     container.innerHTML = habits.map(h => {
       const historyCount = h.history ? Object.values(h.history).filter(Boolean).length : 0;
       const minutes = historyCount * (h.duration || 15);
       const fruitPercent = Math.min(100, Math.round((historyCount / 30) * 100));
 
-      let treeEmoji = '🌱';
-      if (fruitPercent >= 100) treeEmoji = '🍊';
-      else if (fruitPercent >= 60) treeEmoji = '🌳';
-      else if (fruitPercent >= 30) treeEmoji = '🌿';
+      let treeStageTitle = 'Bibit Tunas Baru';
+      let treeBadgeClass = 'stage-seedling';
+      let treeSvgContent = '';
+
+      if (historyCount >= 30) {
+        treeStageTitle = 'Pohon Berbuah Emas (Mastered) 🍊';
+        treeBadgeClass = 'stage-harvest';
+        treeSvgContent = `
+          <svg class="orange-tree-svg" viewBox="0 0 120 120">
+            <!-- Soil -->
+            <path d="M15 105 Q60 115 105 105 Z" fill="#78350f" opacity="0.7"/>
+            <!-- Trunk -->
+            <path d="M52 105 Q58 75 50 55 Q56 40 60 35 Q64 40 70 55 Q62 75 68 105 Z" fill="#92400e"/>
+            <!-- Canopy (Lush Green) -->
+            <circle cx="60" cy="42" r="34" fill="#15803d" filter="url(#dropShadow)"/>
+            <circle cx="42" cy="48" r="22" fill="#16a34a"/>
+            <circle cx="78" cy="48" r="22" fill="#16a34a"/>
+            <circle cx="60" cy="28" r="20" fill="#22c55e"/>
+            <!-- Ripe Golden Oranges -->
+            <g class="ripe-orange-pulse">
+              <circle cx="45" cy="42" r="6.5" fill="#f97316" stroke="#ea580c" stroke-width="1"/>
+              <circle cx="75" cy="42" r="6.5" fill="#f97316" stroke="#ea580c" stroke-width="1"/>
+              <circle cx="60" cy="55" r="7" fill="#ea580c" stroke="#c2410c" stroke-width="1"/>
+              <circle cx="34" cy="56" r="6" fill="#f97316"/>
+              <circle cx="86" cy="56" r="6" fill="#f97316"/>
+              <circle cx="58" cy="25" r="6" fill="#f59e0b"/>
+            </g>
+            <!-- Golden Sparkles -->
+            <path d="M60 10 L62 14 L66 16 L62 18 L60 22 L58 18 L54 16 L58 14 Z" fill="#fbbf24" class="sparkle-anim"/>
+            <path d="M88 28 L89 31 L92 32 L89 33 L88 36 L87 33 L84 32 L87 31 Z" fill="#fbbf24" class="sparkle-anim"/>
+          </svg>
+        `;
+      } else if (historyCount >= 15) {
+        treeStageTitle = 'Pohon Rimbun Bertumbuh 🌳';
+        treeBadgeClass = 'stage-bushy';
+        treeSvgContent = `
+          <svg class="orange-tree-svg" viewBox="0 0 120 120">
+            <path d="M20 105 Q60 115 100 105 Z" fill="#78350f" opacity="0.6"/>
+            <path d="M54 105 Q58 80 52 60 Q57 45 60 40 Q63 45 68 60 Q62 80 66 105 Z" fill="#92400e"/>
+            <circle cx="60" cy="48" r="28" fill="#15803d"/>
+            <circle cx="46" cy="54" r="18" fill="#16a34a"/>
+            <circle cx="74" cy="54" r="18" fill="#16a34a"/>
+            <circle cx="60" cy="34" r="16" fill="#22c55e"/>
+            <!-- Small Green/Orange Buds -->
+            <circle cx="50" cy="48" r="4.5" fill="#84cc16"/>
+            <circle cx="70" cy="48" r="4.5" fill="#84cc16"/>
+            <circle cx="60" cy="58" r="4.5" fill="#f59e0b"/>
+          </svg>
+        `;
+      } else if (historyCount >= 8) {
+        treeStageTitle = 'Pohon Muda Berdaun 🌿';
+        treeBadgeClass = 'stage-sapling';
+        treeSvgContent = `
+          <svg class="orange-tree-svg" viewBox="0 0 120 120">
+            <path d="M30 105 Q60 112 90 105 Z" fill="#78350f" opacity="0.5"/>
+            <path d="M56 105 Q60 85 58 70 L62 70 Q60 85 64 105 Z" fill="#92400e"/>
+            <circle cx="60" cy="62" r="18" fill="#16a34a"/>
+            <circle cx="48" cy="68" r="12" fill="#22c55e"/>
+            <circle cx="72" cy="68" r="12" fill="#22c55e"/>
+          </svg>
+        `;
+      } else {
+        treeStageTitle = 'Tunas Baru Disiram 🌱';
+        treeBadgeClass = 'stage-sprout';
+        treeSvgContent = `
+          <svg class="orange-tree-svg" viewBox="0 0 120 120">
+            <path d="M35 105 Q60 110 85 105 Z" fill="#78350f" opacity="0.4"/>
+            <path d="M58 105 Q60 90 60 80 Q60 90 62 105 Z" fill="#65a30d"/>
+            <ellipse cx="52" cy="76" rx="10" ry="6" fill="#84cc16" transform="rotate(-30 52 76)"/>
+            <ellipse cx="68" cy="76" rx="10" ry="6" fill="#84cc16" transform="rotate(30 68 76)"/>
+          </svg>
+        `;
+      }
 
       return `
-        <div class="orange-tree-card">
+        <div class="orange-tree-card ${historyCount >= 30 ? 'harvest-ready' : ''}">
           <div class="tree-left-info">
-            <div class="tree-sprout-icon">${treeEmoji}</div>
+            <div class="tree-svg-container">
+              ${treeSvgContent}
+            </div>
             <div>
-              <h4 style="font-size: 1rem; font-weight: 700;">${h.title}</h4>
-              <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">
-                <span>⏱️ ${h.duration || 15} Menit</span> • <span>🎯 ${h.goalTitle || 'Tujuan'}</span>
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0;">${h.title}</h4>
+                <span class="tag-pill ${treeBadgeClass}" style="font-size: 0.65rem;">${treeStageTitle}</span>
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                <span>⏱️ ${h.duration || 15} Menit/Sesi</span> • <span>🎯 ${h.goalTitle || 'Tujuan'}</span>
               </div>
             </div>
           </div>
 
           <div class="tree-right-progress">
             <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
-              <span>Akumulasi: ${historyCount} Hari</span>
+              <span>Akumulasi: ${historyCount} Hari Disiram</span>
               <span style="color: #f97316;">🔥 ${h.streak || 0}d Streak</span>
             </div>
             <div class="plant-progress-bar">
               <div class="plant-progress-fill" style="width: ${fruitPercent}%; background: var(--gradient-orange);"></div>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem;">
-              <span>${minutes} Menit Berlatih</span>
-              <span style="color: #f97316; font-weight: 700;">${fruitPercent}% Pohon Berbuah 🍊</span>
+              <span>${minutes} Menit Total Latihan</span>
+              <span style="color: #f97316; font-weight: 700;">${fruitPercent}% Matang (Target 30 Hari)</span>
             </div>
           </div>
         </div>
@@ -582,31 +801,27 @@ class GoalGettenApp {
       const isDoneToday = Boolean(history[this.todayIso]);
       const catColor = h.color || '#8b5cf6';
 
-      // Current month stats
       const currentMonthPrefix = `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const completedThisMonth = Object.keys(history).filter(k => k.startsWith(currentMonthPrefix) && history[k]).length;
 
       let calendarBodyHTML = '';
 
       if (this.calendarViewMode === 'monthly') {
-        // Render 12 Monthly Calendar Cards (Januari - Desember)
         const monthCards = [];
 
         for (let m = 0; m < 12; m++) {
           const monthName = this.INDO_MONTHS[m];
           const daysInMonth = new Date(currentYear, m + 1, 0).getDate();
-          const firstDayIndex = new Date(currentYear, m, 1).getDay(); // 0 = Sun, 1 = Mon, ...
+          const firstDayIndex = new Date(currentYear, m, 1).getDay();
           const monthPrefix = `${currentYear}-${String(m + 1).padStart(2, '0')}`;
           const monthDoneCount = Object.keys(history).filter(k => k.startsWith(monthPrefix) && history[k]).length;
           const isThisActiveMonth = isCurrentRunningYear && m === runningMonthIndex;
 
           const dayCells = [];
-          // Empty padding days before the 1st
           for (let p = 0; p < firstDayIndex; p++) {
             dayCells.push(`<div class="month-day-cell empty"></div>`);
           }
 
-          // Actual days in month
           for (let day = 1; day <= daysInMonth; day++) {
             const iso = `${currentYear}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const isChecked = Boolean(history[iso]);
@@ -616,8 +831,8 @@ class GoalGettenApp {
               <div class="month-day-cell ${isChecked ? 'checked' : ''} ${isToday ? 'today-cell' : ''}"
                    style="${isChecked ? `--day-active-color: ${catColor};` : ''}"
                    title="${this.INDO_DAYS[new Date(currentYear, m, day).getDay()]}, ${day} ${monthName} ${currentYear}: ${isChecked ? 'Selesai ✓' : 'Belum Dikerjakan'}"
-                   onmouseenter="GoalGettengApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
-                   onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${iso}')">
+                   onmouseenter="GoalGettenApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
+                   onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${iso}')">
                 <span>${day}</span>
               </div>
             `);
@@ -648,13 +863,11 @@ class GoalGettenApp {
           </div>
         `;
       } else {
-        // Render 53-Week Timeline Heatmap View with Month Labels & Day Labels
         const startDate = new Date(currentYear, 0, 1);
         const endDate = new Date(currentYear, 11, 31);
-        const startDayOfWeek = startDate.getDay(); // 0 = Sun
+        const startDayOfWeek = startDate.getDay();
 
         const cells = [];
-        // Empty padding before Jan 1st
         for (let p = 0; p < startDayOfWeek; p++) {
           cells.push(`<div class="year-heatmap-cell empty"></div>`);
         }
@@ -668,8 +881,8 @@ class GoalGettenApp {
             <div class="year-heatmap-cell ${isChecked ? 'checked' : ''} ${isToday ? 'today-cell' : ''}" 
                  style="${isChecked ? `--day-active-color: ${catColor};` : ''}"
                  title="${this.formatIndonesianDate(iso)}: ${isChecked ? 'Selesai ✓' : 'Belum Selesai'}"
-                 onmouseenter="GoalGettengApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
-                 onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${iso}')">
+                 onmouseenter="GoalGettenApp.setLiveInspectorInfo('${iso}', '${h.title.replace(/'/g, "\\'")}', ${isChecked})"
+                 onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${iso}')">
             </div>
           `);
         }
@@ -696,9 +909,9 @@ class GoalGettenApp {
 
       return `
         <div class="calendar-accordion-item ${idx === 0 ? 'expanded' : ''}" id="accordion-${h.id}">
-          <div class="calendar-accordion-header" onclick="GoalGettengApp.toggleAccordion('${h.id}')">
+          <div class="calendar-accordion-header" onclick="GoalGettenApp.toggleAccordion('${h.id}')">
             <div style="display: flex; align-items: center; gap: 1rem;">
-              <button class="custom-checkbox" onclick="event.stopPropagation(); GoalGettengApp.toggleHabit('${h.id}', '${this.todayIso}')">
+              <button class="custom-checkbox" onclick="event.stopPropagation(); GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
                 ${isDoneToday ? '✓' : ''}
               </button>
               <div>
@@ -737,20 +950,399 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // 8. Tab: Analisis & Google Cal
+  // 8. Tab: Dashboard Analisis & Integrasi Google Calendar Lengkap
   // =========================================================================
   static renderAnalytics() {
+    const container = document.getElementById('analytics-dashboard-view');
+    if (!container) return;
+
     const habits = StorageManager.getHabits();
     const goals = StorageManager.getGoals();
 
-    const elHabits = document.getElementById('an-total-habits');
-    const elGoals = document.getElementById('an-total-goals');
-    if (elHabits) elHabits.textContent = habits.length;
-    if (elGoals) elGoals.textContent = goals.length;
+    // 1. Calculate overall consistency
+    let totalPossibleHabitDays = habits.length * 7;
+    let completedPast7Days = 0;
+    const today = new Date();
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date();
+      d.setDate(today.getDate() - i);
+      const iso = d.toISOString().slice(0, 10);
+      habits.forEach(h => {
+        if (h.history && h.history[iso]) completedPast7Days++;
+      });
+    }
+
+    const consistencyScore = totalPossibleHabitDays > 0 ? Math.round((completedPast7Days / totalPossibleHabitDays) * 100) : 0;
+
+    // 2. Category time investments
+    const categoryStats = {
+      'Spiritual': { count: 0, minutes: 0, color: '#8b5cf6' },
+      'Physical / Health': { count: 0, minutes: 0, color: '#10b981' },
+      'Intellectual / Career': { count: 0, minutes: 0, color: '#f59e0b' },
+      'Keuangan': { count: 0, minutes: 0, color: '#06b6d4' },
+      'Emotional / Personal': { count: 0, minutes: 0, color: '#f43f5e' },
+      'Creativity / Custom': { count: 0, minutes: 0, color: '#d946ef' }
+    };
+
+    let grandTotalMinutes = 0;
+    habits.forEach(h => {
+      const cat = h.category || 'Spiritual';
+      if (!categoryStats[cat]) {
+        categoryStats[cat] = { count: 0, minutes: 0, color: '#8b5cf6' };
+      }
+      const historyCount = h.history ? Object.values(h.history).filter(Boolean).length : 0;
+      const min = historyCount * (h.duration || 15);
+      categoryStats[cat].count += historyCount;
+      categoryStats[cat].minutes += min;
+      grandTotalMinutes += min;
+    });
+
+    const grandTotalHours = (grandTotalMinutes / 60).toFixed(1);
+
+    // 3. Leaderboard
+    const sortedStreaks = [...habits].sort((a, b) => (b.streak || 0) - (a.streak || 0));
+    const topStreakHabit = sortedStreaks[0] || null;
+
+    container.innerHTML = `
+      <!-- KPI Top Summary Grid -->
+      <div class="analytics-kpi-grid">
+        <div class="stat-box">
+          <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">📊</div>
+          <div class="stat-info">
+            <h4>Skor Konsistensi (7 Hari)</h4>
+            <div class="stat-value" style="color: #10b981;">${consistencyScore}% Disiplin</div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">⏱️</div>
+          <div class="stat-info">
+            <h4>Total Jam Investasi</h4>
+            <div class="stat-value">${grandTotalHours} Jam Waktu Fokus</div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon" style="background: rgba(249, 115, 22, 0.15); color: #f97316;">🔥</div>
+          <div class="stat-info">
+            <h4>Juara Streak</h4>
+            <div class="stat-value" style="font-size: 1rem;">${topStreakHabit ? `${topStreakHabit.title} (${topStreakHabit.streak}d)` : '-'}</div>
+          </div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-icon" style="background: rgba(234, 88, 12, 0.15); color: #ea580c;">🎯</div>
+          <div class="stat-info">
+            <h4>Target Goal Aktif</h4>
+            <div class="stat-value">${goals.length} Goal Terhubung</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two Column Deep Insights -->
+      <div class="analytics-two-col-grid" style="margin-top: 1.5rem;">
+        
+        <!-- Left: Category Time Distribution Breakdown -->
+        <div class="analytics-card-glass">
+          <div class="card-glass-header">
+            <h4>📈 Alokasi Waktu per Kategori</h4>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Total: ${grandTotalHours} Jam</span>
+          </div>
+
+          <div class="category-bars-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+            ${Object.entries(categoryStats).map(([catName, data]) => {
+              const pct = grandTotalMinutes > 0 ? Math.round((data.minutes / grandTotalMinutes) * 100) : 0;
+              const hrs = (data.minutes / 60).toFixed(1);
+              return `
+                <div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.3rem;">
+                    <span style="font-weight: 600; color: #ffffff;">${catName}</span>
+                    <span style="color: ${data.color}; font-weight: 700;">${hrs} Jam (${pct}%)</span>
+                  </div>
+                  <div class="plant-progress-bar" style="height: 8px;">
+                    <div class="plant-progress-fill" style="width: ${pct}%; background: ${data.color};"></div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Right: Habit Leaderboard & Consistency Hall of Fame -->
+        <div class="analytics-card-glass">
+          <div class="card-glass-header">
+            <h4>🏆 Hall of Fame Konsistensi</h4>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Top Habit</span>
+          </div>
+
+          <div class="leaderboard-list" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.65rem;">
+            ${sortedStreaks.slice(0, 5).map((h, i) => {
+              const medals = ['🥇', '🥈', '🥉', '⭐', '✨'];
+              const historyCount = h.history ? Object.values(h.history).filter(Boolean).length : 0;
+              return `
+                <div class="leaderboard-item-row">
+                  <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="leaderboard-medal">${medals[i] || '•'}</span>
+                    <div>
+                      <div style="font-size: 0.85rem; font-weight: 700; color: #ffffff;">${h.title}</div>
+                      <div style="font-size: 0.72rem; color: var(--text-muted);">${h.category} • Total ${historyCount} Hari</div>
+                    </div>
+                  </div>
+                  <span class="streak-tag">🔥 ${h.streak || 0} d</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Integrations & Tools Grid -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
+        
+        <!-- Google Calendar Card -->
+        <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">📅</div>
+            <h4 style="font-size: 1.1rem; color: var(--text-primary);">Google Calendar (.ICS)</h4>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+            Sinkronisasi seluruh rutinitas harian dan deadline goal ke Google Calendar, Apple Calendar, atau Outlook.
+          </p>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-primary" onclick="GoalGettenApp.exportCalendarICS()">Unduh Berkas (.ics)</button>
+            <button class="btn btn-secondary" onclick="AICoachManager.openDrawer()">Tanya Tips AI</button>
+          </div>
+        </div>
+
+        <!-- Mass Upload Box -->
+        <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">📥</div>
+            <h4 style="font-size: 1.1rem; color: var(--text-primary);">Mass Upload Habit</h4>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+            Tambahkan puluhan habit baru sekaligus menggunakan file spreadsheet CSV, salin-tempel teks, atau AI Generator.
+          </p>
+          <button class="btn btn-emerald" onclick="GoalGettenApp.openMassUploadModal()">Buka Mass Upload Habit</button>
+        </div>
+
+        <!-- Backup & Restore Box -->
+        <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="stat-icon" style="background: rgba(249, 115, 22, 0.2); color: #f97316;">💾</div>
+            <h4 style="font-size: 1.1rem; color: var(--text-primary);">Backup & Restore Data</h4>
+          </div>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+            Simpan cadangan data lokal ke format JSON aman atau pulihkan data riwayat dari perangkat lain.
+          </p>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary" onclick="GoalGettenApp.exportBackupJSON()">Ekspor JSON</button>
+            <label class="btn btn-secondary" style="cursor: pointer;">
+              <span>Impor JSON</span>
+              <input type="file" accept=".json" style="display: none;" onchange="GoalGettenApp.importBackupJSON(event)">
+            </label>
+            <button class="btn btn-secondary" style="color: #ef4444;" onclick="GoalGettenApp.resetDefault()">Reset Default</button>
+          </div>
+        </div>
+
+      </div>
+    `;
   }
 
   // =========================================================================
-  // Toggle Habit Check-in
+  // 9. Focus Pomodoro Habit Timer Controller ⏱️
+  // =========================================================================
+  static activeTimerAmbient = 'mute';
+
+  static openFocusTimer(habitId) {
+    const habits = StorageManager.getHabits();
+    const habit = habits.find(h => h.id === habitId);
+    if (!habit) return;
+
+    this.activeTimerHabit = habit;
+    const durMinutes = habit.duration || 15;
+    this.timerTotalSeconds = durMinutes * 60;
+    this.timerRemainingSeconds = this.timerTotalSeconds;
+    this.isTimerRunning = false;
+
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (window.AmbientSoundEngine) AmbientSoundEngine.stop();
+
+    const titleEl = document.getElementById('timer-habit-title');
+    const goalEl = document.getElementById('timer-habit-goal');
+    const catEl = document.getElementById('timer-habit-category');
+    const statusEl = document.getElementById('timer-status-label');
+    const toggleBtn = document.getElementById('btn-timer-toggle');
+
+    if (titleEl) titleEl.textContent = habit.title;
+    if (goalEl) goalEl.textContent = `🎯 Goal: ${habit.goalTitle || 'Tujuan Utama'}`;
+    if (catEl) {
+      catEl.textContent = `🏷️ ${habit.category || 'Spiritual'}`;
+      catEl.style.background = `${habit.color || '#8b5cf6'}25`;
+      catEl.style.color = habit.color || '#8b5cf6';
+    }
+    if (statusEl) statusEl.textContent = 'SIAP FOKUS';
+    if (toggleBtn) toggleBtn.innerHTML = `<span>▶️ Mulai Fokus</span>`;
+
+    // Highlight closest preset button
+    document.querySelectorAll('.timer-preset-btn').forEach(btn => {
+      const min = parseInt(btn.getAttribute('data-min'));
+      btn.classList.toggle('active', min === durMinutes);
+    });
+
+    // Reset ambient pill
+    this.activeTimerAmbient = 'mute';
+    document.querySelectorAll('.ambient-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-type') === 'mute');
+    });
+
+    this.updateTimerDisplay();
+
+    const modal = document.getElementById('modal-focus-timer');
+    if (modal) modal.classList.add('active');
+  }
+
+  static setTimerPreset(minutes) {
+    if (this.isTimerRunning) return; // don't switch during active run without reset
+    this.timerTotalSeconds = minutes * 60;
+    this.timerRemainingSeconds = this.timerTotalSeconds;
+
+    document.querySelectorAll('.timer-preset-btn').forEach(btn => {
+      const m = parseInt(btn.getAttribute('data-min'));
+      btn.classList.toggle('active', m === minutes);
+    });
+
+    this.updateTimerDisplay();
+    if (window.SoundEffects) SoundEffects.playPop();
+  }
+
+  static setAmbientSound(type) {
+    this.activeTimerAmbient = type;
+    document.querySelectorAll('.ambient-pill-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-type') === type);
+    });
+
+    if (this.isTimerRunning && window.AmbientSoundEngine) {
+      AmbientSoundEngine.setSound(type, 0.35);
+    }
+    if (window.SoundEffects) SoundEffects.playPop();
+  }
+
+  static toggleTimerRun() {
+    const toggleBtn = document.getElementById('btn-timer-toggle');
+    const statusEl = document.getElementById('timer-status-label');
+
+    if (this.isTimerRunning) {
+      // Pause
+      this.isTimerRunning = false;
+      if (this.timerInterval) clearInterval(this.timerInterval);
+      if (window.AmbientSoundEngine) AmbientSoundEngine.stop();
+      if (toggleBtn) toggleBtn.innerHTML = `<span>▶️ Lanjutkan</span>`;
+      if (statusEl) statusEl.textContent = 'DIJEDA (PAUSED)';
+      if (window.SoundEffects) SoundEffects.playPop();
+    } else {
+      // Start / Resume
+      this.isTimerRunning = true;
+      if (toggleBtn) toggleBtn.innerHTML = `<span>⏸️ Jeda</span>`;
+      if (statusEl) statusEl.textContent = 'SEDANG BERJALAN 🔥';
+      if (window.SoundEffects) SoundEffects.playPop();
+
+      if (window.AmbientSoundEngine && this.activeTimerAmbient !== 'mute') {
+        AmbientSoundEngine.setSound(this.activeTimerAmbient, 0.35);
+      }
+
+      this.timerInterval = setInterval(() => {
+        this.tickTimer();
+      }, 1000);
+    }
+  }
+
+  static tickTimer() {
+    if (this.timerRemainingSeconds > 0) {
+      this.timerRemainingSeconds--;
+      this.updateTimerDisplay();
+    } else {
+      // Finished naturally
+      this.completeTimerEarly(true);
+    }
+  }
+
+  static resetTimer() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (window.AmbientSoundEngine) AmbientSoundEngine.stop();
+    this.isTimerRunning = false;
+    this.timerRemainingSeconds = this.timerTotalSeconds;
+
+    const toggleBtn = document.getElementById('btn-timer-toggle');
+    const statusEl = document.getElementById('timer-status-label');
+    if (toggleBtn) toggleBtn.innerHTML = `<span>▶️ Mulai</span>`;
+    if (statusEl) statusEl.textContent = 'SIAP FOKUS';
+
+    this.updateTimerDisplay();
+    if (window.SoundEffects) SoundEffects.playPop();
+  }
+
+  static updateTimerDisplay() {
+    const digitsEl = document.getElementById('timer-digits');
+    const progressSvg = document.getElementById('timer-progress-svg');
+
+    const m = Math.floor(this.timerRemainingSeconds / 60);
+    const s = this.timerRemainingSeconds % 60;
+    const formatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+    if (digitsEl) digitsEl.textContent = formatted;
+
+    if (progressSvg && this.timerTotalSeconds > 0) {
+      const radius = 88;
+      const circumference = 2 * Math.PI * radius;
+      const progressFraction = this.timerRemainingSeconds / this.timerTotalSeconds;
+      const offset = circumference * (1 - progressFraction);
+      progressSvg.style.strokeDasharray = `${circumference}`;
+      progressSvg.style.strokeDashoffset = `${offset}`;
+    }
+  }
+
+  static completeTimerEarly(autoFinish = false) {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (window.AmbientSoundEngine) AmbientSoundEngine.stop();
+    this.isTimerRunning = false;
+
+    const habit = this.activeTimerHabit;
+    if (habit) {
+      const habits = StorageManager.getHabits();
+      const target = habits.find(h => h.id === habit.id);
+      if (target) {
+        if (!target.history) target.history = {};
+        target.history[this.todayIso] = true;
+        this.recalcStreak(target);
+        StorageManager.saveHabits(habits);
+        if (window.AuthManager) {
+          AuthManager.pushHabitToggle(target.id, this.todayIso, true);
+        }
+      }
+    }
+
+    if (window.SoundEffects) SoundEffects.playTimerFinish();
+    if (window.ConfettiEngine) ConfettiEngine.launch(3500);
+    if (window.GamificationManager) GamificationManager.addXP(35);
+
+    this.closeFocusTimer();
+    this.showToast(`🏆 Sesi Fokus Selesai! Habit "${habit ? habit.title : ''}" berhasil dicentang (+35 XP)!`, 'success', 4500);
+    this.renderAll();
+  }
+
+  static closeFocusTimer() {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (window.AmbientSoundEngine) AmbientSoundEngine.stop();
+    this.isTimerRunning = false;
+    const modal = document.getElementById('modal-focus-timer');
+    if (modal) modal.classList.remove('active');
+  }
+
+  // =========================================================================
+  // Check-in & Subgoal Handlers
   // =========================================================================
   static toggleHabit(habitId, dateIso) {
     const habits = StorageManager.getHabits();
@@ -899,12 +1491,23 @@ class GoalGettenApp {
     }
   }
 
+  static handleFrequencyChange(freq) {
+    const box = document.getElementById('modal-habit-custom-days-box');
+    if (box) {
+      box.style.display = freq === 'custom' ? 'block' : 'none';
+    }
+  }
+
   static openAddHabitModal() {
+    const heading = document.getElementById('modal-habit-heading');
+    if (heading) heading.textContent = 'Tambah Habit Baru';
     document.getElementById('modal-habit-id').value = '';
     document.getElementById('modal-habit-title').value = '';
     document.getElementById('modal-habit-category').value = 'Spiritual';
     document.getElementById('modal-habit-duration').value = '15';
+    document.getElementById('modal-habit-frequency').value = 'daily';
     document.getElementById('modal-habit-plan').value = '';
+    this.handleFrequencyChange('daily');
     this.populateGoalSelect();
     document.getElementById('modal-habit').classList.add('active');
   }
@@ -913,10 +1516,22 @@ class GoalGettenApp {
     const habit = StorageManager.getHabits().find(h => h.id === id);
     if (!habit) return;
 
+    const heading = document.getElementById('modal-habit-heading');
+    if (heading) heading.textContent = 'Edit Habit';
     document.getElementById('modal-habit-id').value = habit.id;
     document.getElementById('modal-habit-title').value = habit.title;
     document.getElementById('modal-habit-category').value = habit.category;
     document.getElementById('modal-habit-duration').value = habit.duration || 15;
+    const freq = habit.frequency || 'daily';
+    document.getElementById('modal-habit-frequency').value = freq;
+    this.handleFrequencyChange(freq);
+
+    if (habit.targetDays && Array.isArray(habit.targetDays)) {
+      document.querySelectorAll('input[name="habit-target-day"]').forEach(cb => {
+        cb.checked = habit.targetDays.includes(parseInt(cb.value));
+      });
+    }
+
     document.getElementById('modal-habit-plan').value = habit.plan || '';
     this.populateGoalSelect(habit.goalId);
     document.getElementById('modal-habit').classList.add('active');
@@ -937,8 +1552,22 @@ class GoalGettenApp {
     const title = document.getElementById('modal-habit-title').value.trim();
     const category = document.getElementById('modal-habit-category').value;
     const duration = parseInt(document.getElementById('modal-habit-duration').value) || 15;
+    const frequency = document.getElementById('modal-habit-frequency').value || 'daily';
     const goalId = document.getElementById('modal-habit-goal').value;
     const plan = document.getElementById('modal-habit-plan').value.trim();
+
+    const targetDays = [];
+    if (frequency === 'daily') {
+      targetDays.push(0, 1, 2, 3, 4, 5, 6);
+    } else if (frequency === 'weekdays') {
+      targetDays.push(1, 2, 3, 4, 5);
+    } else if (frequency === 'weekends') {
+      targetDays.push(0, 6);
+    } else if (frequency === 'custom') {
+      document.querySelectorAll('input[name="habit-target-day"]:checked').forEach(cb => {
+        targetDays.push(parseInt(cb.value));
+      });
+    }
 
     if (!title) return;
 
@@ -964,6 +1593,8 @@ class GoalGettenApp {
         h.title = title;
         h.category = category;
         h.duration = duration;
+        h.frequency = frequency;
+        h.targetDays = targetDays;
         h.goalId = goalId;
         h.goalTitle = goalTitle;
         h.plan = plan;
@@ -976,6 +1607,8 @@ class GoalGettenApp {
         title,
         category,
         duration,
+        frequency,
+        targetDays,
         goalId,
         goalTitle,
         plan,
@@ -1009,11 +1642,30 @@ class GoalGettenApp {
   }
 
   static openAddGoalModal() {
+    const heading = document.getElementById('modal-goal-heading');
+    if (heading) heading.textContent = 'Buat Goal Baru';
+    document.getElementById('modal-goal-id').value = '';
     document.getElementById('modal-goal-form').reset();
     document.getElementById('modal-goal').classList.add('active');
   }
 
+  static openEditGoalModal(goalId) {
+    const goals = StorageManager.getGoals();
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const heading = document.getElementById('modal-goal-heading');
+    if (heading) heading.textContent = 'Edit Goal Utama';
+    document.getElementById('modal-goal-id').value = goal.id;
+    document.getElementById('modal-goal-title').value = goal.title || '';
+    document.getElementById('modal-goal-category').value = goal.category || 'Spiritual';
+    document.getElementById('modal-goal-target').value = goal.targetDate || '';
+    document.getElementById('modal-goal-desc').value = goal.description || '';
+    document.getElementById('modal-goal').classList.add('active');
+  }
+
   static saveGoalFromForm() {
+    const id = document.getElementById('modal-goal-id').value;
     const title = document.getElementById('modal-goal-title').value.trim();
     const category = document.getElementById('modal-goal-category').value;
     const description = document.getElementById('modal-goal-desc').value.trim();
@@ -1031,23 +1683,47 @@ class GoalGettenApp {
     };
 
     const goals = StorageManager.getGoals();
-    const newGoal = {
-      id: 'g-' + Date.now(),
-      title,
-      category,
-      description,
-      targetDate,
-      color: catColors[category] || '#8b5cf6',
-      subgoals: []
-    };
-    goals.push(newGoal);
+    let savedGoal = null;
+
+    if (id) {
+      const g = goals.find(x => x.id === id);
+      if (g) {
+        const oldTitle = g.title;
+        g.title = title;
+        g.category = category;
+        g.description = description;
+        g.targetDate = targetDate;
+        g.color = catColors[category] || '#8b5cf6';
+        savedGoal = g;
+
+        // Sync linked habits' goalTitle if title changed
+        if (oldTitle !== title) {
+          const habits = StorageManager.getHabits();
+          habits.forEach(h => {
+            if (h.goalId === g.id) h.goalTitle = title;
+          });
+          StorageManager.saveHabits(habits);
+        }
+      }
+    } else {
+      savedGoal = {
+        id: 'g-' + Date.now(),
+        title,
+        category,
+        description,
+        targetDate,
+        color: catColors[category] || '#8b5cf6',
+        subgoals: []
+      };
+      goals.push(savedGoal);
+    }
 
     StorageManager.saveGoals(goals);
-    if (window.AuthManager) {
-      AuthManager.pushGoalSave(newGoal);
+    if (window.AuthManager && savedGoal) {
+      AuthManager.pushGoalSave(savedGoal);
     }
     this.closeModal('modal-goal');
-    this.showToast('🎯 Goal baru berhasil dibuat!', 'success');
+    this.showToast(id ? '✏️ Goal berhasil diperbarui!' : '🎯 Goal baru berhasil dibuat!', 'success');
     this.renderAll();
   }
 
@@ -1103,7 +1779,7 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // 9. MASS UPLOAD HABIT MODULE 🚀
+  // 10. Mass Upload Habit Module 🚀
   // =========================================================================
   static bindMassUpload() {
     const dropzone = document.getElementById('mass-upload-dropzone');
@@ -1183,7 +1859,6 @@ class GoalGettenApp {
     const parsed = [];
     const goals = StorageManager.getGoals();
 
-    // Check if line 0 is a header
     let startIndex = 0;
     const firstLineLower = lines[0].toLowerCase();
     if (firstLineLower.includes('nama') || firstLineLower.includes('habit') || firstLineLower.includes('title')) {
@@ -1192,7 +1867,6 @@ class GoalGettenApp {
 
     for (let i = startIndex; i < lines.length; i++) {
       const line = lines[i];
-      // Split by comma, semicolon, tab or pipe
       let cols = [];
       if (line.includes(';')) {
         cols = line.split(';');
@@ -1201,7 +1875,6 @@ class GoalGettenApp {
       } else if (line.includes('\t')) {
         cols = line.split('\t');
       } else {
-        // basic comma splitter (ignoring nested commas in quotes)
         cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
       }
 
@@ -1301,7 +1974,7 @@ class GoalGettenApp {
     tableBody.innerHTML = this.parsedMassHabits.map((h, idx) => `
       <tr>
         <td style="width: 32px; text-align: center;">
-          <input type="checkbox" ${h.selected ? 'checked' : ''} onchange="GoalGettengApp.toggleMassHabitSelect(${idx})" style="accent-color: #8b5cf6;">
+          <input type="checkbox" ${h.selected ? 'checked' : ''} onchange="GoalGettenApp.toggleMassHabitSelect(${idx})" style="accent-color: #8b5cf6;">
         </td>
         <td style="font-weight: 600; color: #ffffff;">${h.title}</td>
         <td><span class="tag-pill tag-category" style="font-size: 0.65rem;">${h.category}</span></td>
@@ -1343,7 +2016,6 @@ class GoalGettenApp {
 
     let addedCount = 0;
     toImport.forEach(item => {
-      // Find matching goal or fallback
       let matchedGoal = goals.find(g => g.title.toLowerCase() === item.goalName.toLowerCase());
       if (!matchedGoal && goals.length > 0) {
         matchedGoal = goals[0];
@@ -1395,7 +2067,7 @@ class GoalGettenApp {
   }
 
   // =========================================================================
-  // Toast Notification System
+  // 11. Toast & Custom Confirm System
   // =========================================================================
   static showToast(message, type = 'info', duration = 3500) {
     let container = document.getElementById('toast-container');
@@ -1420,9 +2092,6 @@ class GoalGettenApp {
     }, duration);
   }
 
-  // =========================================================================
-  // Custom Confirm Dialog (replaces window.confirm)
-  // =========================================================================
   static showConfirm(message, onConfirm, onCancel) {
     const overlay = document.getElementById('custom-confirm-overlay');
     const msgEl = document.getElementById('custom-confirm-message');
@@ -1449,9 +2118,166 @@ class GoalGettenApp {
       if (onCancel) onCancel();
     });
   }
+
+  // =========================================================================
+  // 12. Keyboard Shortcuts & Power-User Navigation ⌨️
+  // =========================================================================
+  static openKeyboardShortcutsModal() {
+    const modal = document.getElementById('modal-keyboard-shortcuts');
+    if (modal) modal.classList.add('active');
+  }
+
+  static bindKeyboardShortcuts() {
+    window.addEventListener('keydown', (e) => {
+      // Don't trigger if user is actively typing in input, textarea, or select
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.tagName === 'SELECT' ||
+        activeEl.isContentEditable
+      );
+
+      // ESC to close any modal or drawer
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+        if (window.AICoachManager && AICoachManager.isOpen) AICoachManager.closeDrawer();
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.remove('open');
+        if (backdrop) backdrop.classList.remove('active');
+        return;
+      }
+
+      if (isInput) return;
+
+      // ? or Shift+/ -> Open Shortcuts
+      if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+        e.preventDefault();
+        this.openKeyboardShortcutsModal();
+        return;
+      }
+
+      // N -> Add Habit
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        this.openAddHabitModal();
+        return;
+      }
+
+      // G -> Add Goal
+      if (e.key === 'g' || e.key === 'G') {
+        e.preventDefault();
+        this.openAddGoalModal();
+        return;
+      }
+
+      // U -> Mass Upload
+      if (e.key === 'u' || e.key === 'U') {
+        e.preventDefault();
+        this.openMassUploadModal();
+        return;
+      }
+
+      // C or A -> Toggle AI Coach
+      if (e.key === 'c' || e.key === 'C' || e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        if (window.AICoachManager) AICoachManager.toggleDrawer();
+        return;
+      }
+
+      // T -> Start focus timer for first habit
+      if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        const habits = StorageManager.getHabits();
+        const firstUnfinished = habits.find(h => !h.history || !h.history[this.todayIso]) || habits[0];
+        if (firstUnfinished) {
+          this.openFocusTimer(firstUnfinished.id);
+        }
+        return;
+      }
+
+      // 1 to 6 -> Tabs
+      const tabMap = {
+        '1': 'fokus-hari-ini',
+        '2': 'daftar-goal',
+        '3': 'matriks-habit',
+        '4': 'progres-ringkas',
+        '5': 'kalender-rutinitas',
+        '6': 'analisis-cal'
+      };
+      if (tabMap[e.key]) {
+        e.preventDefault();
+        this.switchTab(tabMap[e.key]);
+        return;
+      }
+    });
+  }
+
+  // =========================================================================
+  // 13. Shareable Progress Summary 📋
+  // =========================================================================
+  static copyProgressSummaryToClipboard() {
+    const habits = StorageManager.getHabits();
+    const goals = StorageManager.getGoals();
+    const xp = StorageManager.getXP();
+    const levelInfo = window.GamificationManager ? GamificationManager.getLevelInfo() : { level: 1, title: 'Novice' };
+
+    const completedToday = habits.filter(h => h.history && h.history[this.todayIso]).length;
+    const totalHabits = habits.length;
+    const rate = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
+
+    const maxStreak = habits.reduce((max, h) => Math.max(max, h.streak || 0), 0);
+
+    const textSummary = [
+      `🎯 *GoalGetten Progress Report* 🎯`,
+      `📅 Tanggal: ${this.formatIndonesianDate(new Date())}`,
+      `⭐ Level: LV ${levelInfo.level} (${levelInfo.title}) • ${xp} XP`,
+      ``,
+      `⚡ *Disiplin Hari Ini:* ${completedToday}/${totalHabits} Habit Selesai (${rate}%)`,
+      `🔥 *Streak Tertinggi:* ${maxStreak} Hari Beruntun`,
+      `🚀 *Goal Utama Aktif:* ${goals.length} Sasaran`,
+      ``,
+      `*Daftar Habit Hari Ini:*`,
+      ...habits.map(h => {
+        const isDone = Boolean(h.history && h.history[this.todayIso]);
+        return `${isDone ? '✅' : '⬜'} ${h.title} (🔥 ${h.streak || 0}d)`;
+      }),
+      ``,
+      `🍊 _Dibangun dengan konsistensi di GoalGetten — Habit & Goal Mastery_ 🚀`
+    ].join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textSummary)
+        .then(() => {
+          this.showToast('📋 Ringkasan progres berhasil disalin ke clipboard!', 'success');
+        })
+        .catch(() => {
+          this.fallbackCopyText(textSummary);
+        });
+    } else {
+      this.fallbackCopyText(textSummary);
+    }
+  }
+
+  static fallbackCopyText(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      this.showToast('📋 Ringkasan progres berhasil disalin!', 'success');
+    } catch (e) {
+      this.showToast('Gagal menyalin otomatis. Silakan salin manual.', 'warning');
+    }
+    document.body.removeChild(ta);
+  }
 }
 
-// Backward compat alias
+// Backward compat aliases
 window.GoalGettengApp = GoalGettenApp;
 window.GoalGettenApp = GoalGettenApp;
 

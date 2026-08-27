@@ -2322,3 +2322,811 @@ button {
   vertical-align: middle;
 }
 
+/* ==========================================================================
+   1. Gamification Level & XP UI (Top Pill & Sidebar)
+   ========================================================================== */
+.gamify-top-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.gamify-top-pill:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 16px rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.gamify-level-badge {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.gamify-xp-track-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 120px;
+}
+
+.gamify-xp-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+}
+
+.gamify-title-label {
+  font-weight: 700;
+  color: #f1f5f9;
+  max-width: 95px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gamify-xp-numbers {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.gamify-progress-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.gamify-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #ec4899, #f59e0b);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+/* Sidebar Gamification Box */
+.sidebar-gamify-box {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+}
+
+.sidebar-gamify-level {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #a78bfa;
+}
+
+.sidebar-gamify-xp {
+  font-size: 0.72rem;
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.sidebar-gamify-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-bottom: 0.35rem;
+}
+
+.sidebar-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+.sidebar-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #d946ef, #fbbf24);
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+/* ==========================================================================
+   2. Habit Filter & Search Toolbar
+   ========================================================================== */
+.habit-filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--border-glass);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(12px);
+  flex-wrap: wrap;
+}
+
+.filter-search-box {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.filter-search-box .search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.filter-search-box .search-input {
+  width: 100%;
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: 0.45rem 1rem 0.45rem 2.2rem;
+  font-size: 0.82rem;
+  color: #ffffff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.filter-search-box .search-input:focus {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
+}
+
+.filter-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.filter-status-group {
+  display: flex;
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: 2px;
+}
+
+.filter-pill-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-pill-btn:hover {
+  color: #ffffff;
+}
+
+.filter-pill-btn.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.filter-category-select-wrap {
+  position: relative;
+}
+
+.filter-category-select {
+  background: rgba(2, 6, 23, 0.7);
+  border: 1px solid var(--border-glass);
+  color: #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-full);
+  outline: none;
+  cursor: pointer;
+}
+
+.filter-category-select:focus {
+  border-color: #8b5cf6;
+}
+
+/* Mini Timer Button on Habit Cards */
+.btn-focus-timer-start {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #818cf8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.btn-focus-timer-start:hover {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.5);
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   3. Focus Pomodoro Habit Timer Modal
+   ========================================================================== */
+.focus-timer-dialog {
+  max-width: 420px;
+  text-align: center;
+  padding: 2rem 1.75rem;
+}
+
+.timer-display-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.timer-title {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.2rem;
+}
+
+.timer-goal-sub {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.timer-circle-wrap {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin-bottom: 1.75rem;
+}
+
+.timer-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timer-circle-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 10;
+}
+
+.timer-circle-progress {
+  fill: none;
+  stroke: #8b5cf6;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.8s linear;
+}
+
+.timer-digits-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-countdown-digits {
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 1px;
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
+.timer-mode-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #10b981;
+  letter-spacing: 1px;
+  margin-top: 0.4rem;
+}
+
+.timer-controls-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+/* ==========================================================================
+   4. Interactive SVG Orange Tree Visualizer & Card Styling
+   ========================================================================== */
+.orange-tree-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.25s ease;
+}
+
+.orange-tree-card:hover {
+  border-color: rgba(249, 115, 22, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+.orange-tree-card.harvest-ready {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(249, 115, 22, 0.08) 100%);
+  border-color: rgba(249, 115, 22, 0.4);
+}
+
+.tree-left-info {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex: 1;
+}
+
+.tree-svg-container {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.orange-tree-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.tree-right-progress {
+  min-width: 240px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.stage-seedling { background: rgba(132, 204, 22, 0.15); color: #a3e635; }
+.stage-sapling { background: rgba(22, 163, 74, 0.15); color: #4ade80; }
+.stage-bushy { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.stage-harvest { background: rgba(249, 115, 22, 0.2); color: #fb923c; font-weight: 800; }
+
+.ripe-orange-pulse circle {
+  animation: orangeGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes orangeGlow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(249, 115, 22, 0.5)); }
+  100% { transform: scale(1.06); filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.9)); }
+}
+
+.sparkle-anim {
+  animation: sparkleTwinkle 1.8s ease-in-out infinite;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ==========================================================================
+   5. Analytics Dashboard Grid & Leaderboard
+   ========================================================================== */
+.analytics-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.analytics-two-col-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+}
+
+.analytics-card-glass {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+}
+
+.card-glass-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.card-glass-header h4 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.leaderboard-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  background: rgba(2, 6, 23, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+}
+
+.leaderboard-item-row:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.08);
+}
+
+.leaderboard-medal {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .orange-tree-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .tree-right-progress {
+    min-width: 100%;
+  }
+  .habit-filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ==========================================================================
+   6. Focus Timer Presets & Ambient Audio Controls
+   ========================================================================== */
+.timer-presets-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.timer-preset-btn {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.timer-preset-btn:hover {
+  border-color: #8b5cf6;
+  color: #ffffff;
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.timer-preset-btn.active {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border-color: #8b5cf6;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.4);
+}
+
+.timer-ambient-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin: 1.25rem 0 1.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.85rem;
+  background: rgba(2, 6, 23, 0.4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-glass);
+}
+
+.timer-ambient-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.timer-ambient-pills {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.ambient-pill-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ambient-pill-btn:hover {
+  color: #ffffff;
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.ambient-pill-btn.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+  color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+/* Custom Days Checkbox Row */
+.custom-days-checkboxes {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.day-check-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--border-glass);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.day-check-label:hover {
+  border-color: #8b5cf6;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   7. Achievements & Badges Showcase Modal
+   ========================================================================== */
+.achievements-modal-dialog {
+  max-width: 780px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 0.35rem;
+}
+
+.badge-card-glass {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.badge-card-glass.unlocked {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85) 0%, rgba(245, 158, 11, 0.08) 100%);
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.12);
+}
+
+.badge-card-glass.unlocked:hover {
+  transform: translateY(-2px);
+  border-color: #f59e0b;
+  box-shadow: 0 8px 25px rgba(245, 158, 11, 0.25);
+}
+
+.badge-card-glass.locked {
+  opacity: 0.65;
+  filter: grayscale(0.5);
+}
+
+.badge-icon-box {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  font-size: 1.6rem;
+}
+
+.badge-unlocked-tick {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #10b981;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.badge-locked-lock {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 0.7rem;
+}
+
+.badge-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.badge-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-title-row h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.badge-status-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+}
+
+.badge-status-tag.unlocked {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.badge-status-tag.locked {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.badge-desc {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+  margin: 0;
+}
+
+.badge-progress-wrap {
+  margin-top: 0.5rem;
+}
+
+.badge-progress-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.badge-progress-fill {
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.badge-card-glass.unlocked .badge-progress-fill {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
+}
+
+.badge-progress-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+/* ==========================================================================
+   8. Keyboard Shortcuts Modal Table
+   ========================================================================== */
+.shortcuts-table-wrap {
+  background: rgba(2, 6, 23, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shortcuts-table td {
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.shortcuts-table tr:last-child td {
+  border-bottom: none;
+}
+
+.shortcuts-table td:first-child {
+  width: 150px;
+  white-space: nowrap;
+}
+
+kbd {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.4);
+}
+
+

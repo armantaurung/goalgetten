@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>GoalGetten 🎯</title>
-  <meta name="description" content="Aplikasi web pelacak Goal Utama, Sub-Goal, dan Habit Harian dengan visualisasi Pohon Jeruk, Kalender 365 Hari, Integrasi Google Calendar, dan Mass Upload Habit.">
+  <title>GoalGetten 🎯 Habit & Goal Mastery</title>
+  <meta name="description" content="Pelacak Goal Utama, Sub-Goal, dan Habit Harian dengan AI Coach, Kalender 365 Hari, Pohon Jeruk, dan Focus Pomodoro Timer.">
 
   <!-- Google Fonts: Plus Jakarta Sans & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,6 +35,9 @@
         </div>
       </div>
 
+      <!-- Sidebar Gamification Widget (Level & XP) -->
+      <div id="sidebar-gamification-widget" style="padding: 0 1.25rem 0.75rem;"></div>
+
       <ul class="nav-list">
         <li class="nav-item active">
           <a href="#" data-tab="fokus-hari-ini">
@@ -56,14 +59,14 @@
         </li>
         <li class="nav-item">
           <a href="#" data-tab="progres-ringkas">
-            <span class="nav-icon">📈</span>
-            <span>Progres Ringkas Habit</span>
+            <span class="nav-icon">🍊</span>
+            <span>Pohon Jeruk & Progres</span>
           </a>
         </li>
         <li class="nav-item">
           <a href="#" data-tab="kalender-rutinitas">
             <span class="nav-icon">📅</span>
-            <span>Kalender Rutinitas (365 Hari)</span>
+            <span>Kalender Rutinitas (365)</span>
           </a>
         </li>
         <li class="nav-item">
@@ -95,8 +98,12 @@
 
       <!-- Top Header & Action Bar -->
       <div class="top-nav-bar">
-        <div style="display: flex; align-items: center; gap: 1rem;">
-          <button class="mobile-toggle btn-secondary" id="mobile-toggle">☰</button>
+        <div style="display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap;">
+          <button class="mobile-toggle btn-secondary" id="mobile-toggle" aria-label="Buka Menu">☰</button>
+          
+          <!-- Top Level Gamification Widget -->
+          <div id="top-level-gamification-widget"></div>
+
           <div class="cloud-pill-top" onclick="AuthManager.openCloudConfigModal()" style="cursor: pointer;" title="Klik untuk status koneksi database">
             <span>☁️ Mode Tamu Lokal</span>
             <span class="pin">[Setup Cloud]</span>
@@ -104,6 +111,21 @@
         </div>
 
         <div class="action-buttons-group">
+          <!-- Achievements Button -->
+          <button class="btn btn-secondary" onclick="AchievementsManager.openAchievementsModal()" title="Lihat Galeri Lencana & Piala Pencapaian (🏆)">
+            <span>🏆 Lencana</span>
+          </button>
+
+          <!-- Keyboard Shortcuts Button -->
+          <button class="btn btn-secondary" onclick="GoalGettenApp.openKeyboardShortcutsModal()" title="Daftar Pintasan Keyboard (?)">
+            <span>⌨️</span>
+          </button>
+
+          <!-- Share Progress Summary -->
+          <button class="btn btn-secondary" onclick="GoalGettenApp.copyProgressSummaryToClipboard()" title="Salin ringkasan progres ke clipboard">
+            <span>📋 Salin Rekap</span>
+          </button>
+
           <!-- User Profile / Login Pill -->
           <div id="top-user-auth-pill">
             <button class="btn btn-secondary btn-sm" onclick="AuthManager.openAuthModal('login')" style="border-radius: var(--radius-full); padding: 0.35rem 0.85rem;">
@@ -111,13 +133,13 @@
             </button>
           </div>
 
-          <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()" title="Unggah banyak habit sekaligus via CSV atau teks">
+          <button class="btn btn-emerald" onclick="GoalGettenApp.openMassUploadModal()" title="Unggah banyak habit sekaligus via CSV atau teks">
             <span>📥 Mass Upload</span>
           </button>
-          <button class="btn btn-secondary" onclick="GoalGettengApp.exportCalendarICS()" title="Unduh jadwal habit ke Google Calendar">
+          <button class="btn btn-secondary" onclick="GoalGettenApp.exportCalendarICS()" title="Unduh jadwal habit ke Google Calendar">
             <span>📅 Kalender (.ics)</span>
           </button>
-          <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">
+          <button class="btn btn-primary" onclick="GoalGettenApp.openAddHabitModal()">
             <span>+ Tambah Habit</span>
           </button>
         </div>
@@ -163,6 +185,38 @@
         <!-- AI Daily Coach Insight Banner -->
         <div id="ai-daily-insight-container" style="margin-bottom: 1.5rem;"></div>
 
+        <!-- Habit Search & Filter Toolbar -->
+        <div class="habit-filter-toolbar">
+          <div class="filter-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="habit-search-input" class="search-input" placeholder="Cari kebiasaan atau goal..." oninput="GoalGettenApp.handleSearchInput(this.value)">
+          </div>
+
+          <div class="filter-pills-row">
+            <div class="filter-status-group">
+              <button class="filter-pill-btn active" data-status="all" onclick="GoalGettenApp.setStatusFilter('all')">Semua</button>
+              <button class="filter-pill-btn" data-status="pending" onclick="GoalGettenApp.setStatusFilter('pending')">Belum Selesai</button>
+              <button class="filter-pill-btn" data-status="completed" onclick="GoalGettenApp.setStatusFilter('completed')">Selesai ✓</button>
+            </div>
+
+            <div class="filter-category-select-wrap">
+              <select id="habit-category-filter" class="filter-category-select" onchange="GoalGettenApp.setCategoryFilter(this.value)">
+                <option value="all">Semua Kategori</option>
+                <option value="Spiritual">Spiritual</option>
+                <option value="Physical / Health">Physical / Health</option>
+                <option value="Intellectual / Career">Intellectual / Career</option>
+                <option value="Keuangan">Keuangan</option>
+                <option value="Emotional / Personal">Emotional / Personal</option>
+                <option value="Creativity / Custom">Creativity / Custom</option>
+              </select>
+            </div>
+
+            <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.markAllDoneToday()" title="Centang seluruh habit hari ini">
+              <span>✨ Selesaikan Semua</span>
+            </button>
+          </div>
+        </div>
+
         <div class="focus-today-grid">
           
           <!-- Left Column: Habits Checklist -->
@@ -170,8 +224,8 @@
             <div class="column-header">
               <h3 id="fokus-checklist-heading">⚡ Kebiasaan yang Harus Dikerjakan Hari Ini</h3>
               <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-emerald" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;" onclick="GoalGettengApp.openMassUploadModal()">📥 Mass Upload</button>
-                <button class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
+                <button class="btn btn-emerald" style="padding: 0.35rem 0.65rem; font-size: 0.75rem;" onclick="GoalGettenApp.openMassUploadModal()">📥 Mass Upload</button>
+                <button class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="GoalGettenApp.openAddHabitModal()">+ Tambah Habit</button>
               </div>
             </div>
             <div id="fokus-habits-list"></div>
@@ -181,7 +235,7 @@
           <div>
             <div class="column-header">
               <h3>🚀 Milestone Sub-Goal</h3>
-              <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="GoalGettengApp.switchTab('daftar-goal')">Lihat Semua Goal</button>
+              <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" onclick="GoalGettenApp.switchTab('daftar-goal')">Lihat Semua Goal</button>
             </div>
             <div class="milestones-side-card">
               <div id="side-milestones-list"></div>
@@ -200,7 +254,7 @@
             <h3 style="font-size: 1.35rem;">Daftar Goal & Sub-Goal 🚀</h3>
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Kelola tujuan utama, pecah menjadi milestone konkret, dan selesaikan langkah demi langkah.</p>
           </div>
-          <button class="btn btn-primary" onclick="GoalGettengApp.openAddGoalModal()">+ Buat Goal Baru</button>
+          <button class="btn btn-primary" onclick="GoalGettenApp.openAddGoalModal()">+ Buat Goal Baru</button>
         </div>
 
         <div class="goals-two-col" id="goals-container-full" style="margin-top: 1.5rem;"></div>
@@ -216,8 +270,8 @@
             <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Tinjau riwayat 7 hari dan rencana implementasi setiap kategori kebiasaan.</p>
           </div>
           <div style="display: flex; gap: 0.5rem;">
-            <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()">📥 Mass Upload</button>
-            <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
+            <button class="btn btn-emerald" onclick="GoalGettenApp.openMassUploadModal()">📥 Mass Upload</button>
+            <button class="btn btn-primary" onclick="GoalGettenApp.openAddHabitModal()">+ Tambah Habit</button>
           </div>
         </div>
 
@@ -225,15 +279,15 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- PAGE 4: PROGRES RINGKAS HABIT -->
+      <!-- PAGE 4: PROGRES RINGKAS HABIT (POHON JERUK 🍊) -->
       <!-- =================================================================== -->
       <section class="page-section" id="section-progres-ringkas" style="display: none;">
         <div class="column-header">
           <div>
-            <h3 style="font-size: 1.35rem;">Progres Ringkas Habit 📈</h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Visualisasi pertumbuhan Pohon Jeruk 🍊 berdasarkan akumulasi jam latihan Anda.</p>
+            <h3 style="font-size: 1.35rem;">Pohon Jeruk & Progres Habit 🍊</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Visualisasi pertumbuhan Pohon Jeruk berdasarkan akumulasi konsistensi dan jam latihan Anda.</p>
           </div>
-          <button class="btn btn-primary" onclick="GoalGettengApp.openAddHabitModal()">+ Tambah Habit</button>
+          <button class="btn btn-primary" onclick="GoalGettenApp.openAddHabitModal()">+ Tambah Habit</button>
         </div>
 
         <!-- Tree Summary Metric Bar -->
@@ -261,9 +315,17 @@
               <div class="stat-value" id="prog-stat-habits">0 Habit</div>
             </div>
           </div>
+
+          <div class="stat-box">
+            <div class="stat-icon" style="background: rgba(234, 88, 12, 0.15); color: #ea580c;">🏆</div>
+            <div class="stat-info">
+              <h4>Pohon Berbuah Emas</h4>
+              <div class="stat-value" id="prog-stat-harvest">0 Panen Jeruk</div>
+            </div>
+          </div>
         </div>
 
-        <h4 style="font-size: 1.1rem; font-weight: 700; margin: 2rem 0 1rem;">Daftar Kebiasaan & Visualisasi Pohon Jeruk 🍊</h4>
+        <h4 style="font-size: 1.1rem; font-weight: 700; margin: 2rem 0 1rem;">Kebun Pohon Kebiasaan Anda 🍊</h4>
         <div id="progres-ringkas-container"></div>
       </section>
 
@@ -282,16 +344,16 @@
           <!-- View Mode Switcher & Year Controls -->
           <div class="calendar-controls-bar">
             <div class="cal-year-selector">
-              <button class="cal-nav-btn" onclick="GoalGettengApp.changeCalendarYear(-1)" title="Tahun Sebelumnya">◀</button>
+              <button class="cal-nav-btn" onclick="GoalGettenApp.changeCalendarYear(-1)" title="Tahun Sebelumnya">◀</button>
               <span class="cal-current-year" id="cal-active-year-label">2026</span>
-              <button class="cal-nav-btn" onclick="GoalGettengApp.changeCalendarYear(1)" title="Tahun Berikutnya">▶</button>
+              <button class="cal-nav-btn" onclick="GoalGettenApp.changeCalendarYear(1)" title="Tahun Berikutnya">▶</button>
             </div>
 
             <div class="cal-view-tabs">
-              <button class="cal-view-tab-btn active" id="btn-cal-view-monthly" onclick="GoalGettengApp.setCalendarViewMode('monthly')">
+              <button class="cal-view-tab-btn active" id="btn-cal-view-monthly" onclick="GoalGettenApp.setCalendarViewMode('monthly')">
                 <span>📅 12 Bulan Kalender</span>
               </button>
-              <button class="cal-view-tab-btn" id="btn-cal-view-timeline" onclick="GoalGettengApp.setCalendarViewMode('timeline')">
+              <button class="cal-view-tab-btn" id="btn-cal-view-timeline" onclick="GoalGettenApp.setCalendarViewMode('timeline')">
                 <span>📈 Heatmap 53 Minggu</span>
               </button>
             </div>
@@ -303,7 +365,7 @@
           <div class="cal-legend-items">
             <div class="legend-item"><span class="legend-box checked"></span> <span>Selesai ✓</span></div>
             <div class="legend-item"><span class="legend-box empty"></span> <span>Belum Selesai</span></div>
-            <div class="legend-item"><span class="legend-box today"></span> <span>Hari Ini (<span id="cal-legend-today-label">26 Agu 2026</span>)</span></div>
+            <div class="legend-item"><span class="legend-box today"></span> <span>Hari Ini (<span id="cal-legend-today-label">27 Agu 2026</span>)</span></div>
           </div>
           <div class="cal-live-inspector" id="cal-live-inspector">
             <span>💡 Klik kotak tanggal mana saja untuk mencentang atau membatalkan status</span>
@@ -314,59 +376,79 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- PAGE 6: ANALISIS & GOOGLE CAL -->
+      <!-- PAGE 6: ANALISIS & GOOGLE CALENDAR -->
       <!-- =================================================================== -->
       <section class="page-section" id="section-analisis-cal" style="display: none;">
         <div class="column-header">
           <div>
-            <h3 style="font-size: 1.35rem;">Analisis & Integrasi Google Calendar 📊</h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Sinkronisasi jadwal ke kalender favorit Anda dan kelola backup data.</p>
+            <h3 style="font-size: 1.35rem;">Dashboard Analisis & Integrasi Google Calendar 📊</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Evaluasi konsistensi, statistik waktu per kategori, dan sinkronisasi ke kalender eksternal.</p>
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
-          
-          <!-- Mass Upload Box in Analytics -->
-          <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div class="stat-icon" style="background: rgba(16, 185, 129, 0.2); color: #10b981;">📥</div>
-              <h4 style="font-size: 1.1rem; color: var(--text-primary);">Mass Upload Habit</h4>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary);">Tambahkan puluhan habit baru sekaligus menggunakan file spreadsheet CSV atau salin-tempel teks cepat.</p>
-            <button class="btn btn-emerald" onclick="GoalGettengApp.openMassUploadModal()">Buka Mass Upload Habit</button>
-          </div>
-
-          <!-- Google Calendar Box -->
-          <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div class="stat-icon" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">📅</div>
-              <h4 style="font-size: 1.1rem; color: var(--text-primary);">Google Calendar (.ICS)</h4>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary);">Ekspor seluruh rutinitas harian dan target deadline ke berkas standar iCalendar (.ics) agar muncul di Google Calendar HP & Laptop Anda.</p>
-            <button class="btn btn-primary" onclick="GoalGettengApp.exportCalendarICS()">Unduh Berkas Kalender (.ics)</button>
-          </div>
-
-          <!-- Backup & Restore Box -->
-          <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
-            <div style="display: flex; align-items: center; gap: 0.75rem;">
-              <div class="stat-icon" style="background: rgba(249, 115, 22, 0.2); color: #f97316;">💾</div>
-              <h4 style="font-size: 1.1rem; color: var(--text-primary);">Backup & Restore Data (JSON)</h4>
-            </div>
-            <p style="font-size: 0.85rem; color: var(--text-secondary);">Simpan cadangan data ke file JSON atau pulihkan data dari file cadangan sebelumnya.</p>
-            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-              <button class="btn btn-secondary" onclick="GoalGettengApp.exportBackupJSON()">Ekspor JSON</button>
-              <label class="btn btn-secondary" style="cursor: pointer;">
-                <span>Impor JSON</span>
-                <input type="file" accept=".json" style="display: none;" onchange="GoalGettengApp.importBackupJSON(event)">
-              </label>
-              <button class="btn btn-secondary" style="color: #ef4444;" onclick="GoalGettengApp.resetDefault()">Reset Data Sampel</button>
-            </div>
-          </div>
-
-        </div>
+        <!-- Full Analytics Dashboard Grid -->
+        <div id="analytics-dashboard-view" style="margin-top: 1.5rem;"></div>
       </section>
 
     </main>
+  </div>
+
+  <!-- FLOATING FOCUS POMODORO HABIT TIMER -->
+  <div class="modal-overlay" id="modal-focus-timer">
+    <div class="modal-dialog focus-timer-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <span class="tag-pill tag-category" id="timer-habit-category">⚡ Fokus Habit</span>
+        <button class="icon-btn" onclick="GoalGettenApp.closeFocusTimer()">✕</button>
+      </div>
+
+      <div class="timer-display-area">
+        <h3 id="timer-habit-title" class="timer-title">Nama Habit</h3>
+        <p id="timer-habit-goal" class="timer-goal-sub">🎯 Goal: -</p>
+
+        <!-- Duration Preset Chips -->
+        <div class="timer-presets-row">
+          <button class="timer-preset-btn" data-min="5" onclick="GoalGettenApp.setTimerPreset(5)">5m Blitz</button>
+          <button class="timer-preset-btn active" data-min="15" onclick="GoalGettenApp.setTimerPreset(15)">15m Habit</button>
+          <button class="timer-preset-btn" data-min="25" onclick="GoalGettenApp.setTimerPreset(25)">25m Pomodoro</button>
+          <button class="timer-preset-btn" data-min="45" onclick="GoalGettenApp.setTimerPreset(45)">45m Deep Work</button>
+          <button class="timer-preset-btn" data-min="60" onclick="GoalGettenApp.setTimerPreset(60)">60m Mastery</button>
+        </div>
+
+        <div class="timer-circle-wrap">
+          <svg class="timer-svg" viewBox="0 0 200 200">
+            <circle class="timer-circle-bg" cx="100" cy="100" r="88" />
+            <circle class="timer-circle-progress" id="timer-progress-svg" cx="100" cy="100" r="88" />
+          </svg>
+          <div class="timer-digits-center">
+            <span class="timer-countdown-digits" id="timer-digits">15:00</span>
+            <span class="timer-mode-tag" id="timer-status-label">SIAP FOKUS</span>
+          </div>
+        </div>
+
+        <!-- Ambient Sound Selector -->
+        <div class="timer-ambient-box">
+          <span class="timer-ambient-label">🎧 Suara Latar:</span>
+          <div class="timer-ambient-pills">
+            <button class="ambient-pill-btn active" data-type="mute" onclick="GoalGettenApp.setAmbientSound('mute')">🔇 Hening</button>
+            <button class="ambient-pill-btn" data-type="rain" onclick="GoalGettenApp.setAmbientSound('rain')">🌧️ Hujan</button>
+            <button class="ambient-pill-btn" data-type="white-noise" onclick="GoalGettenApp.setAmbientSound('white-noise')">📻 Noise</button>
+            <button class="ambient-pill-btn" data-type="clock-tick" onclick="GoalGettenApp.setAmbientSound('clock-tick')">⏰ Detik</button>
+          </div>
+        </div>
+
+        <div class="timer-controls-row">
+          <button class="btn btn-primary btn-lg" id="btn-timer-toggle" onclick="GoalGettenApp.toggleTimerRun()">
+            <span>▶️ Mulai</span>
+          </button>
+          <button class="btn btn-secondary" onclick="GoalGettenApp.resetTimer()">
+            <span>🔄 Reset</span>
+          </button>
+          <button class="btn btn-emerald" onclick="GoalGettenApp.completeTimerEarly()">
+            <span>✓ Selesai (+XP)</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL: MASS UPLOAD HABIT (CSV & TEXT) -->
@@ -377,14 +459,14 @@
           <h3 style="font-family: var(--font-display); font-size: 1.3rem;">📥 Mass Upload Habit</h3>
           <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.2rem;">Tambahkan banyak habit sekaligus menggunakan berkas CSV atau tempel teks.</p>
         </div>
-        <button class="icon-btn" onclick="GoalGettengApp.closeModal('modal-mass-upload')">✕</button>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-mass-upload')">✕</button>
       </div>
 
       <!-- Tab Switcher (CSV vs Paste vs AI) -->
       <div class="upload-tab-bar">
-        <button class="upload-tab-btn active" data-tab="csv" onclick="GoalGettengApp.switchMassUploadTab('csv')">📄 Unggah Berkas CSV</button>
-        <button class="upload-tab-btn" data-tab="text" onclick="GoalGettengApp.switchMassUploadTab('text')">📋 Tempel Teks Cepat</button>
-        <button class="upload-tab-btn" data-tab="ai" onclick="GoalGettengApp.switchMassUploadTab('ai')">✨ AI Prompt Generator</button>
+        <button class="upload-tab-btn active" data-tab="csv" onclick="GoalGettenApp.switchMassUploadTab('csv')">📄 Unggah Berkas CSV</button>
+        <button class="upload-tab-btn" data-tab="text" onclick="GoalGettenApp.switchMassUploadTab('text')">📋 Tempel Teks Cepat</button>
+        <button class="upload-tab-btn" data-tab="ai" onclick="GoalGettenApp.switchMassUploadTab('ai')">✨ AI Prompt Generator</button>
       </div>
 
       <!-- Tab 1: CSV File Dropzone -->
@@ -392,9 +474,9 @@
         <div class="file-dropzone" id="mass-upload-dropzone">
           <div class="file-dropzone-icon">📁</div>
           <h4 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem;">Tarik & Lepas File CSV ke Sini</h4>
-          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">atau klik untuk memilih berkas dari laptop (.csv)</p>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">atau klik untuk memilih berkas dari perangkat (.csv)</p>
           <input type="file" id="mass-upload-file-input" accept=".csv" style="display: none;">
-          <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="event.stopPropagation(); GoalGettengApp.downloadCSVTemplate()">
+          <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="event.stopPropagation(); GoalGettenApp.downloadCSVTemplate()">
             <span>⬇️ Unduh Format Template CSV</span>
           </button>
         </div>
@@ -430,7 +512,7 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
           <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">
             Pratinjau Habit (<span id="mass-selected-count">0</span> terpilih)
           </span>
-          <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;" onclick="GoalGettengApp.toggleSelectAllMassHabits()">
+          <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;" onclick="GoalGettenApp.toggleSelectAllMassHabits()">
             Pilih Semua / Batal
           </button>
         </div>
@@ -460,8 +542,8 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
 
       <!-- Modal Footer Actions -->
       <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
-        <button type="button" class="btn btn-secondary" onclick="GoalGettengApp.closeModal('modal-mass-upload')">Batal</button>
-        <button type="button" class="btn btn-emerald" id="btn-execute-mass-import" onclick="GoalGettengApp.executeMassImport()" disabled>
+        <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-mass-upload')">Batal</button>
+        <button type="button" class="btn btn-emerald" id="btn-execute-mass-import" onclick="GoalGettenApp.executeMassImport()" disabled>
           Import Habit Terpilih
         </button>
       </div>
@@ -472,8 +554,8 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
   <div class="modal-overlay" id="modal-habit">
     <div class="modal-dialog">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3 style="font-family: var(--font-display); font-size: 1.3rem;">Tambah / Edit Habit</h3>
-        <button class="icon-btn" onclick="GoalGettengApp.closeModal('modal-habit')">✕</button>
+        <h3 id="modal-habit-heading" style="font-family: var(--font-display); font-size: 1.3rem;">Tambah / Edit Habit</h3>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-habit')">✕</button>
       </div>
 
       <form id="modal-habit-form">
@@ -503,6 +585,30 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
           </div>
         </div>
 
+        <!-- Frequency & Target Days Selector -->
+        <div class="form-group">
+          <label for="modal-habit-frequency">Frekuensi Rutinitas</label>
+          <select id="modal-habit-frequency" class="form-control" onchange="GoalGettenApp.handleFrequencyChange(this.value)">
+            <option value="daily">Setiap Hari (7 Hari Penuh)</option>
+            <option value="weekdays">Hari Kerja (Senin - Jumat)</option>
+            <option value="weekends">Akhir Pekan (Sabtu - Minggu)</option>
+            <option value="custom">Kustom Hari Tertentu...</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="modal-habit-custom-days-box" style="display: none;">
+          <label style="font-size: 0.8rem; color: var(--text-secondary);">Pilih Hari Pelaksanaan:</label>
+          <div class="custom-days-checkboxes">
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="1" checked> Sen</label>
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="2" checked> Sel</label>
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="3" checked> Rab</label>
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="4" checked> Kam</label>
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="5" checked> Jum</label>
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="6" checked> Sab</label>
+            <label class="day-check-label"><input type="checkbox" name="habit-target-day" value="0" checked> Min</label>
+          </div>
+        </div>
+
         <div class="form-group">
           <label for="modal-habit-goal">Hubungkan ke Goal Utama</label>
           <select id="modal-habit-goal" class="form-control"></select>
@@ -519,22 +625,24 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
-          <button type="button" class="btn btn-secondary" onclick="GoalGettengApp.closeModal('modal-habit')">Batal</button>
+          <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-habit')">Batal</button>
           <button type="submit" class="btn btn-primary">Simpan Habit</button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL: TAMBAH GOAL -->
+  <!-- MODAL: TAMBAH / EDIT GOAL -->
   <div class="modal-overlay" id="modal-goal">
     <div class="modal-dialog">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-        <h3 style="font-family: var(--font-display); font-size: 1.3rem;">Buat Goal Baru</h3>
-        <button class="icon-btn" onclick="GoalGettengApp.closeModal('modal-goal')">✕</button>
+        <h3 id="modal-goal-heading" style="font-family: var(--font-display); font-size: 1.3rem;">Buat Goal Baru</h3>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-goal')">✕</button>
       </div>
 
       <form id="modal-goal-form">
+        <input type="hidden" id="modal-goal-id">
+
         <div class="form-group">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
             <label for="modal-goal-title" style="margin-bottom: 0;">Judul Tujuan Utama (Goal)</label>
@@ -570,7 +678,7 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
-          <button type="button" class="btn btn-secondary" onclick="GoalGettengApp.closeModal('modal-goal')">Batal</button>
+          <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-goal')">Batal</button>
           <button type="submit" class="btn btn-primary">Simpan Goal</button>
         </div>
       </form>
@@ -734,14 +842,14 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
 
       <form id="modal-cloud-form" onsubmit="event.preventDefault(); AuthManager.handleCloudConfigSubmit();">
         <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5;">
-          Hubungkan aplikasi GoalGetten ke proyek **Supabase PostgreSQL** Anda agar seluruh data tersinkronisasi otomatis di laptop, HP, dan tablet.
+          Hubungkan aplikasi GoalGetten ke proyek <strong>Supabase PostgreSQL</strong> Anda agar seluruh data tersinkronisasi otomatis di laptop, HP, dan tablet.
         </p>
 
         <div class="form-group">
           <label for="cloud-supabase-url">Supabase Project URL</label>
           <input type="url" id="cloud-supabase-url" class="form-control" placeholder="https://xyzcompany.supabase.co">
           <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
-            Ditemukan di Dashboard Supabase > Project Settings > API > Project URL.
+            Ditemukan di Dashboard Supabase &gt; Project Settings &gt; API &gt; Project URL.
           </small>
         </div>
 
@@ -749,7 +857,7 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
           <label for="cloud-supabase-key">Supabase Anon Key (Public)</label>
           <input type="password" id="cloud-supabase-key" class="form-control" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
           <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 0.25rem;">
-            Ditemukan di Dashboard Supabase > Project Settings > API > Project API keys > anon public.
+            Ditemukan di Dashboard Supabase &gt; Project Settings &gt; API &gt; Project API keys &gt; anon public.
           </small>
         </div>
 
@@ -758,13 +866,13 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
           <ol style="margin-left: 1.2rem; margin-top: 0.35rem; line-height: 1.4;">
             <li>Buka <a href="https://supabase.com" target="_blank" style="color: #38bdf8; text-decoration: underline;">supabase.com</a> dan buat akun / proyek baru gratis.</li>
             <li>Buka menu <strong>SQL Editor</strong> dan jalankan skrip dari berkas <code>schema.sql</code>.</li>
-            <li>Salin URL & Anon Key proyek ke form di atas, lalu klik <strong>Simpan & Hubungkan</strong>.</li>
+            <li>Salin URL &amp; Anon Key proyek ke form di atas, lalu klik <strong>Simpan &amp; Hubungkan</strong>.</li>
           </ol>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
           <button type="button" class="btn btn-secondary" onclick="AuthManager.closeCloudConfigModal()">Tutup</button>
-          <button type="submit" class="btn btn-primary">Simpan & Hubungkan</button>
+          <button type="submit" class="btn btn-primary">Simpan &amp; Hubungkan</button>
         </div>
       </form>
     </div>
@@ -792,6 +900,72 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
           <button type="submit" class="btn btn-primary">Simpan Sub-Goal</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ACHIEVEMENTS & BADGES SHOWCASE -->
+  <div class="modal-overlay" id="modal-achievements">
+    <div class="modal-dialog large achievements-modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <span style="font-size: 1.8rem;">🏆</span>
+          <div>
+            <h3 style="font-family: var(--font-display); font-size: 1.35rem; margin: 0; color: #ffffff;">Galeri Lencana &amp; Pencapaian</h3>
+            <span style="font-size: 0.8rem; color: var(--text-secondary);" id="achievements-unlocked-count">0 / 0 Lencana Terbuka (0%)</span>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="AchievementsManager.closeAchievementsModal()">✕</button>
+      </div>
+
+      <!-- Overall Achievements Progress Bar -->
+      <div class="achievements-overall-track" style="margin-bottom: 1.5rem;">
+        <div class="plant-progress-bar" style="height: 10px;">
+          <div class="plant-progress-fill" id="achievements-overall-bar" style="width: 0%; background: linear-gradient(90deg, #f59e0b, #ec4899, #8b5cf6);"></div>
+        </div>
+      </div>
+
+      <!-- Badges Grid View -->
+      <div class="achievements-grid" id="achievements-grid-view"></div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-primary" onclick="AchievementsManager.closeAchievementsModal()">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: KEYBOARD SHORTCUTS CHEAT SHEET -->
+  <div class="modal-overlay" id="modal-keyboard-shortcuts">
+    <div class="modal-dialog" style="max-width: 520px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 1.5rem;">⌨️</span>
+          <h3 style="font-family: var(--font-display); font-size: 1.3rem; margin: 0; color: #ffffff;">Pintasan Keyboard (Shortcuts)</h3>
+        </div>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-keyboard-shortcuts')">✕</button>
+      </div>
+
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        Navigasi cepat dan kendalikan aplikasi GoalGetten menggunakan tombol keyboard:
+      </p>
+
+      <div class="shortcuts-table-wrap">
+        <table class="shortcuts-table">
+          <tbody>
+            <tr><td><kbd>?</kbd> atau <kbd>Shift</kbd> + <kbd>/</kbd></td><td>Buka panduan pintasan keyboard ini</td></tr>
+            <tr><td><kbd>N</kbd></td><td>Buka modal Tambah Habit baru</td></tr>
+            <tr><td><kbd>G</kbd></td><td>Buka modal Buat Goal baru</td></tr>
+            <tr><td><kbd>U</kbd></td><td>Buka modal Mass Upload Habit</td></tr>
+            <tr><td><kbd>C</kbd> atau <kbd>A</kbd></td><td>Buka / Tutup AI Habit Coach drawer</td></tr>
+            <tr><td><kbd>T</kbd></td><td>Mulai Pomodoro Timer untuk habit pertama</td></tr>
+            <tr><td><kbd>1</kbd> - <kbd>6</kbd></td><td>Pindah Tab (1: Fokus, 2: Goals, 3: Matriks, 4: Pohon, 5: Kalender, 6: Analisis)</td></tr>
+            <tr><td><kbd>Esc</kbd></td><td>Tutup modal atau drawer yang aktif</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" class="btn btn-primary" onclick="GoalGettenApp.closeModal('modal-keyboard-shortcuts')">Mengerti</button>
+      </div>
     </div>
   </div>
 
