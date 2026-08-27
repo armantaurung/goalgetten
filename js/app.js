@@ -199,6 +199,8 @@ class GoalGettenApp {
     }
   }
 
+  static currentSortMode = 'time-24h';
+
   static setStatusFilter(status) {
     this.currentStatusFilter = status;
     document.querySelectorAll('.filter-status-group .filter-pill-btn').forEach(btn => {
@@ -214,8 +216,73 @@ class GoalGettenApp {
     this.renderFokusHariIniListOnly();
   }
 
+  static setSortMode(mode) {
+    this.currentSortMode = mode || 'time-24h';
+    const select = document.getElementById('habit-sort-select');
+    if (select) select.value = this.currentSortMode;
+    this.renderFokusHariIniListOnly();
+  }
+
+  static getTimeDetails(timeStr, isDone = false) {
+    const time = timeStr || '08:00';
+    const [hStr, mStr] = time.split(':');
+    const hour = parseInt(hStr, 10) || 0;
+    const min = parseInt(mStr, 10) || 0;
+
+    let period = 'Pagi';
+    let periodEmoji = '🌅';
+    if (hour >= 3 && hour < 6) {
+      period = 'Subuh';
+      periodEmoji = '🌌';
+    } else if (hour >= 6 && hour < 11) {
+      period = 'Pagi';
+      periodEmoji = '🌅';
+    } else if (hour >= 11 && hour < 15) {
+      period = 'Siang';
+      periodEmoji = '☀️';
+    } else if (hour >= 15 && hour < 18) {
+      period = 'Sore';
+      periodEmoji = '🌇';
+    } else {
+      period = 'Malam';
+      periodEmoji = '🌙';
+    }
+
+    const now = new Date();
+    const currentTotalMin = now.getHours() * 60 + now.getMinutes();
+    const habitTotalMin = hour * 60 + min;
+
+    let statusClass = 'time-upcoming';
+    let statusText = `Jadwal ${period}`;
+    let statusBadge = `⏳ ${period}`;
+
+    if (isDone) {
+      statusClass = 'time-done';
+      statusText = 'Selesai';
+      statusBadge = '✓ Selesai';
+    } else if (Math.abs(currentTotalMin - habitTotalMin) <= 45) {
+      statusClass = 'time-now';
+      statusText = 'Waktunya Sekarang!';
+      statusBadge = '⚡ Sekarang';
+    } else if (currentTotalMin > habitTotalMin) {
+      statusClass = 'time-overdue';
+      statusText = 'Waktu Lewat';
+      statusBadge = '🕒 Lewat';
+    }
+
+    return {
+      formattedTime: time,
+      period,
+      periodEmoji,
+      statusClass,
+      statusText,
+      statusBadge,
+      totalMinutes: habitTotalMin
+    };
+  }
+
   static getFilteredHabits(habits) {
-    return habits.filter(h => {
+    let result = habits.filter(h => {
       // Category filter
       if (this.currentCategoryFilter !== 'all' && h.category !== this.currentCategoryFilter) {
         return false;
@@ -237,6 +304,19 @@ class GoalGettenApp {
 
       return true;
     });
+
+    // Automatic 24-hour and custom sorting
+    if (this.currentSortMode === 'time-24h') {
+      result.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+    } else if (this.currentSortMode === 'streak-desc') {
+      result.sort((a, b) => (b.streak || 0) - (a.streak || 0));
+    } else if (this.currentSortMode === 'duration-asc') {
+      result.sort((a, b) => (a.duration || 15) - (b.duration || 15));
+    } else if (this.currentSortMode === 'duration-desc') {
+      result.sort((a, b) => (b.duration || 15) - (a.duration || 15));
+    }
+
+    return result;
   }
 
   static markAllDoneToday() {
@@ -352,6 +432,7 @@ class GoalGettenApp {
     list.innerHTML = filteredHabits.map(h => {
       const isDone = Boolean(h.history && h.history[this.todayIso]);
       const catColor = h.color || '#8b5cf6';
+      const timeInfo = this.getTimeDetails(h.time, isDone);
 
       return `
         <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};" data-habit-id="${h.id}">
@@ -371,8 +452,14 @@ class GoalGettenApp {
                 ${isDone ? '✓' : ''}
               </div>
               <div class="habit-title-area">
-                <h4>${h.title}</h4>
+                <div class="habit-title-row">
+                  <h4>${h.title}</h4>
+                  <span class="tag-pill tag-24h-time ${timeInfo.statusClass}" title="Jadwal 24 jam: ${timeInfo.formattedTime} WIB (${timeInfo.statusText})">
+                    ${timeInfo.periodEmoji} ${timeInfo.formattedTime} • ${timeInfo.period}
+                  </span>
+                </div>
                 <div class="habit-meta-tags">
+                  <span class="tag-pill tag-time-status ${timeInfo.statusClass}">${timeInfo.statusBadge}</span>
                   <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
                   <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
                   <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
@@ -553,6 +640,9 @@ class GoalGettenApp {
       const catHabits = habits.filter(h => (h.category || '').toLowerCase() === cat.toLowerCase());
       if (catHabits.length === 0) return '';
 
+      // Auto-sort by 24h schedule
+      catHabits.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+
       const catColor = catHabits[0].color || '#8b5cf6';
 
       return `
@@ -582,7 +672,12 @@ class GoalGettenApp {
                       ${(h.history && h.history[this.todayIso]) ? '✓' : ''}
                     </div>
                     <div class="habit-title-area">
-                      <h4>${h.title}</h4>
+                      <div class="habit-title-row">
+                        <h4>${h.title}</h4>
+                        <span class="tag-pill tag-24h-time ${this.getTimeDetails(h.time, Boolean(h.history && h.history[this.todayIso])).statusClass}" title="Jadwal 24 jam: ${h.time || '08:00'} WIB">
+                          ⏰ ${h.time || '08:00'}
+                        </span>
+                      </div>
                       <div class="habit-meta-tags">
                         <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
                         <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan'}</span>
@@ -1529,6 +1624,8 @@ class GoalGettenApp {
     document.getElementById('modal-habit-id').value = '';
     document.getElementById('modal-habit-title').value = '';
     document.getElementById('modal-habit-category').value = 'Spiritual';
+    const timeEl = document.getElementById('modal-habit-time');
+    if (timeEl) timeEl.value = '06:00';
     document.getElementById('modal-habit-duration').value = '15';
     document.getElementById('modal-habit-frequency').value = 'daily';
     document.getElementById('modal-habit-plan').value = '';
@@ -1546,6 +1643,8 @@ class GoalGettenApp {
     document.getElementById('modal-habit-id').value = habit.id;
     document.getElementById('modal-habit-title').value = habit.title;
     document.getElementById('modal-habit-category').value = habit.category;
+    const timeEl = document.getElementById('modal-habit-time');
+    if (timeEl) timeEl.value = habit.time || '08:00';
     document.getElementById('modal-habit-duration').value = habit.duration || 15;
     const freq = habit.frequency || 'daily';
     document.getElementById('modal-habit-frequency').value = freq;
@@ -1576,6 +1675,7 @@ class GoalGettenApp {
     const id = document.getElementById('modal-habit-id').value;
     const title = document.getElementById('modal-habit-title').value.trim();
     const category = document.getElementById('modal-habit-category').value;
+    const time = (document.getElementById('modal-habit-time')?.value || '08:00').trim();
     const duration = parseInt(document.getElementById('modal-habit-duration').value) || 15;
     const frequency = document.getElementById('modal-habit-frequency').value || 'daily';
     const goalId = document.getElementById('modal-habit-goal').value;
@@ -1617,6 +1717,7 @@ class GoalGettenApp {
       if (h) {
         h.title = title;
         h.category = category;
+        h.time = time;
         h.duration = duration;
         h.frequency = frequency;
         h.targetDays = targetDays;
@@ -1631,6 +1732,7 @@ class GoalGettenApp {
         id: 'h-' + Date.now(),
         title,
         category,
+        time,
         duration,
         frequency,
         targetDays,
@@ -2454,11 +2556,15 @@ class GoalGettenApp {
     habits.splice(insertIdx, 0, moved);
     StorageManager.saveHabits(habits);
 
+    this.currentSortMode = 'custom';
+    const sortSelect = document.getElementById('habit-sort-select');
+    if (sortSelect) sortSelect.value = 'custom';
+
     if (window.SoundEffects && SoundEffects.playPop) {
       SoundEffects.playPop();
     }
     if (window.GoalGettenApp && GoalGettenApp.showToast) {
-      GoalGettenApp.showToast('✨ Urutan habit berhasil diperbarui!', 'info', 1800);
+      GoalGettenApp.showToast('✨ Urutan habit berhasil diperbarui (Kustom)!', 'info', 1800);
     }
 
     if (window.AuthManager && AuthManager.currentUser && AuthManager.syncLocalToCloud) {

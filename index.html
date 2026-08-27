@@ -229,6 +229,17 @@
               </select>
             </div>
 
+            <!-- 24-Hour & Custom Sort Selector -->
+            <div class="filter-sort-select-wrap">
+              <select id="habit-sort-select" class="filter-category-select filter-sort-select" onchange="GoalGettenApp.setSortMode(this.value)" title="Metode pengurutan bilah habit">
+                <option value="time-24h" selected>⏰ Waktu 24 Jam (Otomatis)</option>
+                <option value="custom">↕️ Kustom (Drag &amp; Drop)</option>
+                <option value="streak-desc">🔥 Streak Tertinggi</option>
+                <option value="duration-asc">⏱️ Durasi Singkat</option>
+                <option value="duration-desc">⏱️ Durasi Panjang</option>
+              </select>
+            </div>
+
             <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.markAllDoneToday()" title="Centang seluruh habit hari ini">
               <span>✨ Selesaikan Semua</span>
             </button>
@@ -609,9 +620,14 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
           </div>
 
           <div class="form-group">
-            <label for="modal-habit-duration">Estimasi Durasi (Menit)</label>
-            <input type="number" id="modal-habit-duration" class="form-control" value="15" min="1">
+            <label for="modal-habit-time">⏰ Waktu Pelaksanaan (Format 24 Jam)</label>
+            <input type="time" id="modal-habit-time" class="form-control" value="06:00" required>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-habit-duration">Estimasi Durasi (Menit)</label>
+          <input type="number" id="modal-habit-duration" class="form-control" value="15" min="1">
         </div>
 
         <!-- Frequency & Target Days Selector -->

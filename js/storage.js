@@ -27,6 +27,7 @@ const DEFAULT_HABITS = [
     id: 'h-1',
     title: 'Sholat Berjamaah di Masjid',
     category: 'Spiritual',
+    time: '04:45',
     duration: 15,
     goalId: 'g-1',
     goalTitle: 'Ketenangan & Ketakwaan Spiritual',
@@ -47,6 +48,7 @@ const DEFAULT_HABITS = [
     id: 'h-2',
     title: 'Membaca Al-Qur\'an 1 Halaman / Juz',
     category: 'Spiritual',
+    time: '05:30',
     duration: 15,
     goalId: 'g-1',
     goalTitle: 'Ketenangan & Ketakwaan Spiritual',
@@ -66,6 +68,7 @@ const DEFAULT_HABITS = [
     id: 'h-3',
     title: 'Workout / Senam & Jalan Kaki Pagi',
     category: 'Physical / Health',
+    time: '06:15',
     duration: 20,
     goalId: 'g-2',
     goalTitle: 'Kebugaran & Daya Tahan Tubuh Prima',
@@ -84,6 +87,7 @@ const DEFAULT_HABITS = [
     id: 'h-4',
     title: 'Minum Air Putih 2.5 Liter / Hari',
     category: 'Physical / Health',
+    time: '07:00',
     duration: 5,
     goalId: 'g-2',
     goalTitle: 'Kebugaran & Daya Tahan Tubuh Prima',
@@ -104,6 +108,7 @@ const DEFAULT_HABITS = [
     id: 'h-5',
     title: 'Deep Work: Skill AI & Coding 45 Menit',
     category: 'Intellectual / Career',
+    time: '09:00',
     duration: 45,
     goalId: 'g-3',
     goalTitle: 'Karier AI Engineer & Digital Creator',
@@ -121,6 +126,7 @@ const DEFAULT_HABITS = [
     id: 'h-6',
     title: 'Catat Arus Kas & Pengeluaran Harian',
     category: 'Keuangan',
+    time: '20:30',
     duration: 5,
     goalId: 'g-3',
     goalTitle: 'Karier AI Engineer & Digital Creator',
@@ -243,6 +249,30 @@ class StorageManager {
       if (!Array.isArray(parsed) || parsed.length === 0) {
         this.saveHabits(DEFAULT_HABITS);
         return DEFAULT_HABITS;
+      }
+      const timeDefaults = {
+        'h-1': '04:45',
+        'h-2': '05:30',
+        'h-3': '06:15',
+        'h-4': '07:00',
+        'h-5': '09:00',
+        'h-6': '20:30',
+        'Spiritual': '05:00',
+        'Physical / Health': '06:30',
+        'Intellectual / Career': '09:00',
+        'Keuangan': '20:00',
+        'Emotional / Personal': '21:00',
+        'Creativity / Custom': '16:00'
+      };
+      let modified = false;
+      parsed.forEach((h, idx) => {
+        if (!h.time) {
+          h.time = timeDefaults[h.id] || timeDefaults[h.category] || '08:00';
+          modified = true;
+        }
+      });
+      if (modified) {
+        this.saveHabits(parsed);
       }
       return parsed;
     } catch (e) {

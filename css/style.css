@@ -3831,6 +3831,157 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   color: #0f172a;
 }
 
+/* ==========================================================================
+   13. 24-Hour Habit Schedule & Automatic Sorting System
+   ========================================================================== */
+
+.habit-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.habit-title-row h4 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.35;
+}
+
+/* 24-Hour Time Badges */
+.tag-24h-time {
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.tag-24h-time.time-upcoming {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.tag-24h-time.time-now {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+  animation: pulseSchedule 2.2s infinite;
+}
+
+.tag-24h-time.time-overdue {
+  background: rgba(244, 63, 94, 0.12);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.28);
+}
+
+.tag-24h-time.time-done {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+/* Time Status Secondary Tag */
+.tag-time-status {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+}
+
+.tag-time-status.time-upcoming {
+  background: rgba(148, 163, 184, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.tag-time-status.time-now {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fde68a;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.tag-time-status.time-overdue {
+  background: rgba(244, 63, 94, 0.15);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.25);
+}
+
+.tag-time-status.time-done {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+@keyframes pulseSchedule {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.45);
+    transform: scale(1.02);
+  }
+}
+
+/* Sort Selector in Filter Toolbar */
+.filter-sort-select {
+  border-color: rgba(99, 102, 241, 0.35) !important;
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: #a5b4fc !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+}
+
+.filter-sort-select:hover {
+  border-color: #6366f1 !important;
+  background: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Light Mode Adaptations for 24h Tags */
+[data-theme="light"] .habit-title-row h4 {
+  color: #0f172a;
+}
+
+[data-theme="light"] .tag-24h-time.time-upcoming {
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+[data-theme="light"] .tag-24h-time.time-now {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+[data-theme="light"] .tag-24h-time.time-overdue {
+  background: rgba(244, 63, 94, 0.1);
+  color: #e11d48;
+  border-color: rgba(244, 63, 94, 0.25);
+}
+
+[data-theme="light"] .tag-24h-time.time-done {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="light"] .filter-sort-select {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  background: rgba(99, 102, 241, 0.06) !important;
+  color: #4f46e5 !important;
+}
+
+
 
 
 
