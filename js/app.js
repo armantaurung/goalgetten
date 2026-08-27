@@ -39,6 +39,7 @@ class GoalGettenApp {
   }
 
   static init() {
+    try { this.applyTheme(); } catch (e) { console.warn('Theme init error:', e); }
     try { this.bindNavigation(); } catch (e) { console.warn('Nav bind error:', e); }
     try { this.bindModals(); } catch (e) { console.warn('Modals bind error:', e); }
     try { this.bindMassUpload(); } catch (e) { console.warn('Mass upload bind error:', e); }
@@ -2221,6 +2222,13 @@ class GoalGettenApp {
         return;
       }
 
+      // M -> Toggle Theme Mode (Malam / Siang)
+      if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        this.toggleTheme();
+        return;
+      }
+
       // 1 to 6 -> Tabs
       const tabMap = {
         '1': 'fokus-hari-ini',
@@ -2458,6 +2466,44 @@ class GoalGettenApp {
     }
 
     GoalGettenApp.renderAll();
+  }
+
+  // =========================================================================
+  // 15. Theme Engine (Mode Malam 🌙 & Mode Siang ☀️)
+  // =========================================================================
+  static applyTheme(theme) {
+    const activeTheme = theme || (window.StorageManager ? StorageManager.getTheme() : 'dark') || 'dark';
+    document.documentElement.setAttribute('data-theme', activeTheme);
+    if (window.StorageManager) StorageManager.setTheme(activeTheme);
+
+    const icon = document.getElementById('theme-toggle-icon');
+    const label = document.getElementById('theme-toggle-label');
+    const btn = document.getElementById('btn-theme-toggle');
+
+    if (icon) {
+      icon.textContent = activeTheme === 'light' ? '☀️' : '🌙';
+    }
+    if (label) {
+      label.textContent = activeTheme === 'light' ? 'Mode Siang' : 'Mode Malam';
+    }
+    if (btn) {
+      btn.setAttribute('title', activeTheme === 'light' ? 'Beralih ke Mode Malam (Dark Mode 🌙)' : 'Beralih ke Mode Siang (Light Mode ☀️)');
+    }
+
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', activeTheme === 'light' ? '#ffffff' : '#6366f1');
+    }
+  }
+
+  static toggleTheme() {
+    const current = (window.StorageManager ? StorageManager.getTheme() : 'dark') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    this.applyTheme(next);
+    if (window.SoundEffects && SoundEffects.playPop) {
+      SoundEffects.playPop();
+    }
+    this.showToast(`🌓 Beralih ke ${next === 'light' ? 'Mode Siang (Day Mode ☀️)' : 'Mode Malam (Night Mode 🌙)'}`, 'info', 2000);
   }
 }
 

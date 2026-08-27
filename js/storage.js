@@ -13,7 +13,8 @@ const STORAGE_KEYS = {
   SUPABASE_ANON_KEY: 'goalgetteng_supabase_anon_key',
   USER_SESSION: 'goalgetteng_user_session',
   LOCAL_ACCOUNTS: 'goalgetteng_local_accounts',
-  XP: 'goalgetteng_xp'
+  XP: 'goalgetteng_xp',
+  THEME: 'goalgetten_theme'
 };
 
 const DEFAULT_PIN = 'ARMANT';
@@ -368,6 +369,14 @@ class StorageManager {
     const next = current + (amount || 0);
     this.saveXP(next);
     return next;
+  }
+
+  static getTheme() {
+    return localStorage.getItem(STORAGE_KEYS.THEME) || 'dark';
+  }
+
+  static setTheme(theme) {
+    localStorage.setItem(STORAGE_KEYS.THEME, theme || 'dark');
   }
 
   static resetToDefault() {
