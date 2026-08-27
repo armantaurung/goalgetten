@@ -3302,6 +3302,58 @@ kbd {
   transition: transform 0.15s ease;
 }
 
+/* ==========================================================================
+   11. Creator Credit & Footer Styles (Harman 2026)
+   ========================================================================== */
+
+/* Sidebar Creator Credit */
+.sidebar-credit-tag {
+  margin-top: 0.65rem;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  letter-spacing: 0.2px;
+  line-height: 1.35;
+}
+
+.sidebar-credit-tag strong {
+  color: #a5b4fc;
+  font-weight: 700;
+}
+
+/* App Global Footer */
+.app-global-footer {
+  margin-top: 3.5rem;
+  padding: 1.75rem 1rem;
+  border-top: 1px solid var(--border-glass);
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.35);
+  border-radius: var(--radius-lg);
+}
+
+.footer-credit-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.footer-credit-content strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.footer-dot {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+
 
 
 

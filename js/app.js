@@ -2268,7 +2268,7 @@ class GoalGettenApp {
         return `${isDone ? '✅' : '⬜'} ${h.title} (🔥 ${h.streak || 0}d)`;
       }),
       ``,
-      `🍊 _Dibangun dengan konsistensi di GoalGetten — Habit & Goal Mastery_ 🚀`
+      `🍊 _Dibangun dengan konsistensi di GoalGetten • Dibuat oleh Harman tahun 2026_ 🚀`
     ].join('\n');
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
