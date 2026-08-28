@@ -2,7 +2,7 @@
  * GoalGetten 🎯 Service Worker (PWA Offline Caching)
  */
 
-const CACHE_NAME = 'goalgetten-v2.1';
+const CACHE_NAME = 'goalgetten-v3.0';
 const STATIC_ASSETS = [
   './',
   './index.html',
