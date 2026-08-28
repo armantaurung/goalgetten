@@ -295,14 +295,14 @@ class AICoachManager {
     this.showTypingIndicator();
 
     try {
-      const apiKey = StorageManager.getApiKey();
+      const apiKey = (StorageManager.getApiKey() || '').trim();
       let replyText = '';
 
       if (apiKey) {
-        replyText = await this.callGeminiAPI(userText);
+        replyText = await this.callGeminiAPI(userText.trim());
       } else {
-        await this.simulateTypingDelay(600);
-        replyText = this.generateLocalHeuristicReply(userText);
+        await this.simulateTypingDelay(450);
+        replyText = this.generateLocalHeuristicReply(userText.trim());
       }
 
       this.hideTypingIndicator();
@@ -322,10 +322,19 @@ class AICoachManager {
       console.error('AI Coach Error:', err);
       this.hideTypingIndicator();
 
+      let errorMsg = '';
+      if (err.message === 'API_KEY_INVALID') {
+        errorMsg = `🔑 **API Key Gemini Tidak Valid / Salah**\n\nKunci API yang dimasukkan tidak dikenali oleh Google. Silakan klik ikon roda gigi **⚙️ (Pengaturan)** di atas untuk memeriksa dan memperbarui API Key Anda dari [Google AI Studio](https://aistudio.google.com/app/apikey).\n\n*Sementara beralih ke Smart Local Engine:*`;
+      } else if (err.message === 'QUOTA_EXCEEDED') {
+        errorMsg = `⏳ **Batas Kuota Gemini Tercapai**\n\nBatas permintaan gratis per menit tercapai pada akun Google AI Studio Anda. Silakan tunggu 1 menit lalu coba lagi.\n\n*Sementara beralih ke Smart Local Engine:*`;
+      } else {
+        errorMsg = `⚠️ **Koneksi Gemini AI Mengalami Kendala (${err.message || 'Error'})**\n\n*Beralih ke Smart Local Engine cadangan:*`;
+      }
+
       const fallbackReply = this.generateLocalHeuristicReply(userText);
       this.conversation.push({
         role: 'assistant',
-        text: `⚠️ *Koneksi Gemini API mengalami kendala, beralih ke Smart Local Engine:*\n\n${fallbackReply}`,
+        text: `${errorMsg}\n\n${fallbackReply}`,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       });
       this.saveHistory();
@@ -369,46 +378,101 @@ class AICoachManager {
   }
 
   // =========================================================================
-  // Gemini API Integration
+  // Gemini API Integration (Multi-turn Chat & Model Auto-Fallback)
   // =========================================================================
-  static async callGeminiAPI(prompt) {
-    const apiKey = StorageManager.getApiKey();
-    const model = StorageManager.getAiModel() || 'gemini-1.5-flash';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  static async callGeminiAPI(prompt, customSystemInstruction = null) {
+    const apiKey = (StorageManager.getApiKey() || '').trim();
+    if (!apiKey) {
+      throw new Error('NO_API_KEY');
+    }
 
-    const systemContext = this.buildUserSystemContext();
+    const selectedModel = StorageManager.getAiModel() || 'gemini-1.5-flash';
+    const modelsToTry = [selectedModel, 'gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash-latest'];
+    const uniqueModels = [...new Set(modelsToTry)];
 
-    const contents = [
-      {
-        role: 'user',
-        parts: [{ text: systemContext + "\n\nUser Question: " + prompt }]
-      }
-    ];
+    const systemInstruction = customSystemInstruction || this.buildUserSystemContext();
 
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000
+    // Prepare multi-turn history from recent conversation (last 8 messages)
+    const historyContents = [];
+    const recentMsgs = this.conversation.slice(-8);
+    recentMsgs.forEach(m => {
+      if (m.role === 'user') {
+        historyContents.push({
+          role: 'user',
+          parts: [{ text: m.text }]
+        });
+      } else if (m.role === 'assistant') {
+        const cleanAssistantText = m.text.replace(/\[ADD_HABIT:[^\]]+\]/gi, '').trim();
+        if (cleanAssistantText) {
+          historyContents.push({
+            role: 'model',
+            parts: [{ text: cleanAssistantText }]
+          });
         }
-      })
+      }
     });
 
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error?.message || `HTTP error ${response.status}`);
+    // Add current prompt
+    historyContents.push({
+      role: 'user',
+      parts: [{ text: prompt }]
+    });
+
+    let lastError = null;
+
+    for (const model of uniqueModels) {
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const payload = {
+          system_instruction: {
+            parts: [{ text: systemInstruction }]
+          },
+          contents: historyContents,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000
+          }
+        };
+
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `HTTP ${response.status}`;
+
+          if (errMsg.includes('API_KEY_INVALID') || errMsg.includes('API key not valid') || response.status === 400 && errMsg.includes('key')) {
+            throw new Error('API_KEY_INVALID');
+          }
+          if (response.status === 429 || errMsg.includes('RESOURCE_EXHAUSTED')) {
+            throw new Error('QUOTA_EXCEEDED');
+          }
+
+          if (response.status === 404 || response.status === 400) {
+            lastError = new Error(errMsg);
+            continue; // Try next model fallback
+          }
+
+          throw new Error(errMsg);
+        }
+
+        const data = await response.json();
+        const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (candidateText) {
+          return candidateText;
+        }
+      } catch (err) {
+        if (err.message === 'API_KEY_INVALID' || err.message === 'QUOTA_EXCEEDED') {
+          throw err;
+        }
+        lastError = err;
+      }
     }
 
-    const data = await response.json();
-    const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!candidateText) {
-      throw new Error('Respon kosong dari model Gemini');
-    }
-
-    return candidateText;
+    throw lastError || new Error('Gagal mendapatkan respons dari Gemini API.');
   }
 
   static buildUserSystemContext() {
@@ -417,11 +481,11 @@ class AICoachManager {
     const todayIso = new Date().toISOString().slice(0, 10);
     const completedToday = habits.filter(h => h.history && h.history[todayIso]).length;
 
-    const habitsSummary = habits.map(h => `- ${h.title} (${h.category}, ${h.duration}m, Streak: ${h.streak}d, Done Today: ${Boolean(h.history && h.history[todayIso])})`).join('\n');
-    const goalsSummary = goals.map(g => `- ${g.title} (${g.category}, Target: ${g.targetDate}, Subgoals: ${(g.subgoals || []).filter(s => s.done).length}/${(g.subgoals || []).length})`).join('\n');
+    const habitsSummary = habits.map(h => `- ${h.title} (${h.category}, ${h.duration}m, Streak: ${h.streak}d, Selesai Hari Ini: ${Boolean(h.history && h.history[todayIso]) ? 'Ya' : 'Belum'})`).join('\n');
+    const goalsSummary = goals.map(g => `- ${g.title} (${g.category}, Target: ${g.targetDate || '-'}, Subgoals: ${(g.subgoals || []).filter(s => s.done).length}/${(g.subgoals || []).length})`).join('\n');
 
     return `
-You are the elite "AI Habit & Goal Coach" for the GoalGetten app.
+You are the elite "AI Habit & Goal Coach" for the GoalGetten web app.
 Your mission: Help the user build atomic habits, overcome procrastination, achieve goals, and stay disciplined.
 Language: Indonesian (Warm, motivating, practical, structured, high-energy).
 
@@ -451,9 +515,60 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     const completedToday = habits.filter(h => h.history && h.history[todayIso]).length;
     const rate = habits.length > 0 ? Math.round((completedToday / habits.length) * 100) : 0;
     const topStreakHabit = [...habits].sort((a, b) => (b.streak || 0) - (a.streak || 0))[0];
+    const mainGoal = goals[0] ? goals[0].title : 'Goal Utama';
 
-    // Scenario 1: Evaluasi / Laporan / Progress
-    if (lower.includes('evaluasi') || lower.includes('laporan') || lower.includes('progress') || lower.includes('konsistensi') || lower.includes('minggu ini')) {
+    // 1. Salam / Sapaan
+    if (lower.includes('halo') || lower.includes('hai') || lower.includes('assalam') || lower.includes('pagi') || lower.includes('siang') || lower.includes('sore') || lower.includes('malam') || lower.includes('hello') || lower.includes('hi')) {
+      return `👋 **Halo! Semangat menyapa hari ini!** 🎯\n\n` +
+        `Saya siap membantu Anda menjaga fokus dan konsistensi.\n` +
+        `• Hari ini: **${completedToday}/${habits.length} habit** selesai (${rate}%).\n` +
+        (topStreakHabit ? `• Streak aktif terkuat: 🔥 **${topStreakHabit.title}** (${topStreakHabit.streak} hari)!\n\n` : '\n') +
+        `Apa yang ingin kita rencanakan atau konsultasikan sekarang?`;
+    }
+
+    // 2. Pertanyaan Identitas / Bantuan
+    if (lower.includes('siapa kamu') || lower.includes('kamu siapa') || lower.includes('bisa apa') || lower.includes('fitur') || lower.includes('bantu saya') || lower.includes('panduan')) {
+      return `🤖 **Saya adalah AI Habit Coach Anda di GoalGetten 🎯**\n\n` +
+        `Berikut beberapa hal yang bisa saya lakukan untuk Anda:\n` +
+        `1. 💡 **Saran Kebiasaan Baru:** Rekomendasi habit efektif dengan tombol 1-klik tambah.\n` +
+        `2. ⚡ **Mengatasi Malas & Prokrastinasi:** Trik psikologi *Atomic Habits* & *2-Minute Rule*.\n` +
+        `3. 🎯 **Memecah Goal Besar:** Mengubah sasaran tahunan menjadi langkah mikro terukur.\n` +
+        `4. 📊 **Evaluasi & Laporan:** Analisis streak dan konsistensi harian Anda.\n\n` +
+        `*Ketik pertanyaan apa saja atau gunakan tombol aksi cepat di bawah!* ✨`;
+    }
+
+    // 3. Bangun Pagi / Tidur / Rutinitas Pagi
+    if (lower.includes('bangun pagi') || lower.includes('tidur') || lower.includes('subuh') || lower.includes('insomnia') || lower.includes('begadang') || lower.includes('susah bangun')) {
+      return `🌅 **Seni Membangun Rutinitas Bangun Pagi yang Segar:**\n\n` +
+        `Kunci bangun pagi sebenarnya dimulai dari **ritual malam sebelumnya**:\n\n` +
+        `1. **Jauhkan Layar 30 Menit Sebelum Tidur:** Kurangi cahaya biru (*blue light*) agar hormon melatonin bekerja optimal.\n` +
+        `2. **Siapkan Pakaian & Air Putih di Meja:** Kurangi gesekan saat membuka mata.\n` +
+        `3. **Pemicu Langsung (Habit Stacking):** Bangun -> Langsung teguk air putih hangat.\n\n` +
+        `[ADD_HABIT: Minum Air Putih & Peregangan 5 Menit | Physical / Health | 5 | JIKA bangun tidur, MAKA segera teguk 1 gelas air putih dan regangkan badan | Kebugaran & Daya Tahan Tubuh Prima]\n\n` +
+        `[ADD_HABIT: Mode Malam: Matikan Layar HP Jam 22:30 | Emotional / Personal | 10 | JIKA jam 22:30, MAKA letakkan ponsel jauh dari tempat tidur | Kebugaran & Daya Tahan Tubuh Prima]`;
+    }
+
+    // 4. Belajar / Fokus / Membaca / Skripsi / Pekerjaan
+    if (lower.includes('belajar') || lower.includes('fokus') || lower.includes('kuliah') || lower.includes('skripsi') || lower.includes('baca') || lower.includes('buku') || lower.includes('pomodoro') || lower.includes('konsentrasi')) {
+      return `🧠 **Teknik Deep Work & Fokus Tinggi Bebas Distraksi:**\n\n` +
+        `Otak manusia butuh ~15 menit untuk masuk ke *Flow State*. Gunakan metode **25/5 Pomodoro Protocol**:\n\n` +
+        `• **Blok 25 Menit:** Matikan semua notifikasi, buka 1 tab/tugas saja.\n` +
+        `• **Jeda 5 Menit:** Berdiri, minum air, jangan buka media sosial.\n\n` +
+        `[ADD_HABIT: Sesi Deep Work Pomodoro 25 Menit | Intellectual / Career | 25 | JIKA jam 09:00 pagi, MAKA pasang timer fokus 25 menit dan mulai tugas prioritas | ${mainGoal}]\n\n` +
+        `[ADD_HABIT: Membaca Buku / Materi 15 Menit | Intellectual / Career | 15 | JIKA selesai makan siang atau sebelum tidur, MAKA membaca 5 halaman | ${mainGoal}]`;
+    }
+
+    // 5. Keuangan / Menabung / Budgeting
+    if (lower.includes('uang') || lower.includes('hemat') || lower.includes('tabung') || lower.includes('keuangan') || lower.includes('investasi') || lower.includes('boros') || lower.includes('gaji')) {
+      return `💰 **Pondasi Finansial Kuat dengan Kebiasaan Mikro:**\n\n` +
+        `Kunci kebebasan finansial bukan seberapa besar penghasilan, melainkan **seberapa disiplin arus kas Anda dikontrol**:\n\n` +
+        `1. **Aturan 24 Jam:** Tunda keinginan membeli barang non-pokok selama 24 jam untuk meredakan dorongan impulsif.\n` +
+        `2. **Catat Tiap Transaksi:** Kesadaran (*awareness*) otomatis mengerem pengeluaran bocor halus.\n\n` +
+        `[ADD_HABIT: Catat Arus Kas Harian 5 Menit | Keuangan | 5 | JIKA selesai transaksi pembayaran atau sebelum tidur, MAKA buka aplikasi pencatat keuangan | Kebebasan Finansial & Investasi]`;
+    }
+
+    // 6. Evaluasi / Laporan / Progress
+    if (lower.includes('evaluasi') || lower.includes('laporan') || lower.includes('progress') || lower.includes('konsistensi') || lower.includes('minggu ini') || lower.includes('hari ini')) {
       let advice = `📊 **Evaluasi Performa & Konsistensi Habit Anda:**\n\n`;
       advice += `• **Status Hari Ini:** ${completedToday} dari ${habits.length} habit (${rate}%) telah diselesaikan.\n`;
       if (topStreakHabit) {
@@ -462,63 +577,69 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
       advice += `• **Goal Berjalan:** ${goals.length} sasaran utama aktif.\n\n`;
 
       if (rate >= 80) {
-        advice += `🌟 **Catatan Coach:** Momentum Anda sangat luar biasa! Jangan menambah terlalu banyak beban baru, pertahankan ritme ini.\n`;
+        advice += `🌟 **Catatan Coach:** Momentum Anda luar biasa! Jangan menambah terlalu banyak beban baru, pertahankan ritme konsisten ini.\n`;
       } else if (rate >= 40) {
-        advice += `💡 **Catatan Coach:** Anda sudah melangkah di jalur yang benar. Selesaikan 1 atau 2 habit kecil (di bawah 15 menit) sekarang untuk menutup hari dengan kemenangan penuh!\n`;
+        advice += `💡 **Catatan Coach:** Anda sudah melangkah di jalur yang benar. Selesaikan 1 habit kecil (di bawah 15 menit) sekarang untuk menutup hari dengan kemenangan!\n`;
       } else {
         advice += `⚡ **Catatan Coach:** Hari ini masih bisa dimenangkan! Pilih 1 habit paling mudah dengan aturan *2-Minute Rule* sekarang.\n`;
       }
       return advice;
     }
 
-    // Scenario 2: Malas / Prokrastinasi / Tidak Semangat
-    if (lower.includes('malas') || lower.includes('prokrastinasi') || lower.includes('tunda') || lower.includes('lelah') || lower.includes('capek') || lower.includes('cape')) {
+    // 7. Malas / Prokrastinasi / Tidak Semangat / Lelah
+    if (lower.includes('malas') || lower.includes('prokrastinasi') || lower.includes('tunda') || lower.includes('lelah') || lower.includes('capek') || lower.includes('cape') || lower.includes('mager') || lower.includes('bosan') || lower.includes('down')) {
       return `⚡ **Strategi Anti-Prokrastinasi (Atomic Action):**\n\n` +
-        `Rasa malas adalah sinyal bahwa target terasa terlalu besar di otak. Terapkan strategi **"2-Minute Rule"**:\n\n` +
-        `1. **Kecilkan Skala:** Jangan pikirkan lari 5 km, cukup pasang sepatu olahraga.\n` +
-        `2. **Aturan 5 Detik:** Hitung mundur *5-4-3-2-1* lalu langsung berdiri tanpa negosiasi pikiran.\n` +
-        `3. **Pilih 1 Habit Termudah:** Kerjakan habit paling ringan di daftar Anda sekarang.\n\n` +
+        `Rasa malas adalah sinyal biologis bahwa target di otak Anda terasa terlalu berat. Terapkan strategi **"2-Minute Rule"**:\n\n` +
+        `1. **Kecilkan Skala:** Jangan pikirkan olahraga 1 jam, cukup pasang sepatu senam.\n` +
+        `2. **Aturan 5 Detik:** Hitung mundur *5-4-3-2-1* lalu langsung berdiri tanpa berdebat dengan pikiran.\n` +
+        `3. **Pilih 1 Habit Termudah:** Kerjakan 1 habit berdurasi paling singkat sekarang.\n\n` +
         `*Ingat:* Motivasi datang **SETELAH** Anda mulai bergerak, bukan sebelumnya! 🚀`;
     }
 
-    // Scenario 3: Saran Habit Baru / Rekomendasi
-    if (lower.includes('saran') || lower.includes('rekomendasi') || lower.includes('habit baru') || lower.includes('tambah habit') || lower.includes('kebiasaan baru')) {
-      const gTitle = goals[0] ? goals[0].title : 'Karier & Produktivitas';
+    // 8. Saran Habit Baru / Rekomendasi
+    if (lower.includes('saran') || lower.includes('rekomendasi') || lower.includes('habit baru') || lower.includes('tambah habit') || lower.includes('kebiasaan baru') || lower.includes('ide')) {
       return `💡 **Berikut 2 Rekomendasi Habit Berdampak Tinggi (*Keystone Habits*):**\n\n` +
-        `1. **Deep Work Pomodoro (Fokus Tinggi):**\n` +
+        `1. **Deep Work Pomodoro (Fokus Produktif):**\n` +
         `Meningkatkan output kerja hingga 3x lipat tanpa distraksi ponsel.\n` +
-        `[ADD_HABIT: Deep Work Sesi Pagi 25 Menit | Intellectual / Career | 25 | JIKA jam 08:30 pagi, MAKA matikan notifikasi HP dan pasang timer fokus 25 menit | ${gTitle}]\n\n` +
+        `[ADD_HABIT: Deep Work Sesi Pagi 25 Menit | Intellectual / Career | 25 | JIKA jam 08:30 pagi, MAKA matikan notifikasi HP dan pasang timer fokus 25 menit | ${mainGoal}]\n\n` +
         `2. **Refleksi & Jurnal Syukur Malam:**\n` +
-        `Menurunkan stres harian dan menyiapkan tidur yang nyenyak.\n` +
+        `Menurunkan hormon kortisol (stres) dan menyiapkan tidur yang nyenyak.\n` +
         `[ADD_HABIT: Jurnal Refleksi & Evaluasi Malam | Emotional / Personal | 10 | JIKA sebelum naik ke tempat tidur, MAKA tulis 3 hal yang disyukuri hari ini | Ketenangan Batin]\n\n` +
         `*Klik tombol hijau di atas untuk langsung menambahkannya ke daftar habit Anda!* ✨`;
     }
 
-    // Scenario 4: Pecah Goal / Breakdown
+    // 9. Pecah Goal / Breakdown
     if (lower.includes('pecah') || lower.includes('goal') || lower.includes('target') || lower.includes('breakdown') || lower.includes('milestone')) {
       return `🎯 **Panduan Memecah Goal Besar Menjadi Kebiasaan Harian:**\n\n` +
-        `Setiap goal besar selalu merupakan kumpulan dari tindakan kecil yang diulang setiap hari:\n\n` +
-        `• **Target Outcome:** Misalnya *Kuasai Skill AI / Bisnis Baru*.\n` +
-        `• **Milestone Sub-Goal:** 1) Selesai modul dasar, 2) Buat 1 proyek nyata, 3) Publikasikan portofolio.\n` +
-        `• **Habit Harian:** Belajar 30 menit per hari.\n\n` +
-        `[ADD_HABIT: Belajar & Praktik Skill Kunci 30 Menit | Intellectual / Career | 30 | JIKA jam 07:00 pagi, MAKA buka materi pembelajaran selama 30 menit | Kuasai Skill AI & Produktivitas]\n\n` +
-        `Coba tanyakan tujuan spesifik Anda, saya akan buatkan pemecahannya secara mendetail!`;
+        `Setiap pencapaian besar selalu tersusun dari tindakan kecil yang diulang setiap hari:\n\n` +
+        `• **Target Akhir:** Sasaran spesifik (misal: *${mainGoal}*).\n` +
+        `• **Milestone Sub-Goal:** 1) Pondasi dasar, 2) Eksekusi proyek inti, 3) Evaluasi hasil.\n` +
+        `• **Habit Harian:** Tindakan 15–30 menit tanpa putus.\n\n` +
+        `[ADD_HABIT: Praktik & Progres Goal Utama 20 Menit | Intellectual / Career | 20 | JIKA jam 07:00 pagi, MAKA buka materi dan kerjakan 1 langkah mikro | ${mainGoal}]\n\n` +
+        `Coba sebutkan tujuan spesifik yang ingin Anda capai, saya akan buatkan pemecahannya secara mendalam!`;
     }
 
-    // Scenario 5: Kebugaran / Kesehatan
-    if (lower.includes('olahraga') || lower.includes('sehat') || lower.includes('berat badan') || lower.includes('diet') || lower.includes('fit') || lower.includes('tidur')) {
+    // 10. Kebugaran / Olahraga / Kesehatan
+    if (lower.includes('olahraga') || lower.includes('sehat') || lower.includes('berat badan') || lower.includes('diet') || lower.includes('fit') || lower.includes('lari') || lower.includes('senam')) {
       return `🏃 **Rekomendasi Kebiasaan Kebugaran & Vitalitas:**\n\n` +
-        `Tubuh yang bugar adalah fondasi dari seluruh produktivitas harian Anda.\n\n` +
-        `[ADD_HABIT: Jalan Cepat / Kardio Ringan 20 Menit | Physical / Health | 20 | JIKA jam 06:00 pagi, MAKA langsung kenakan sepatu dan jalan pagi 20 menit | Kebugaran & Daya Tahan Tubuh Prima]\n\n` +
-        `[ADD_HABIT: Minum 1 Gelas Air Putih Saat Bangun Tidur | Physical / Health | 5 | JIKA kaki menyentuh lantai saat bangun, MAKA segera teguk 1 gelas air putih hangat | Kebugaran & Daya Tahan Tubuh Prima]`;
+        `Tubuh yang bugar adalah fondasi dari seluruh produktivitas harian Anda:\n\n` +
+        `[ADD_HABIT: Jalan Cepat / Senam Ringan 20 Menit | Physical / Health | 20 | JIKA jam 06:00 pagi, MAKA langsung kenakan sepatu dan gerakkan badan 20 menit | Kebugaran & Daya Tahan Tubuh Prima]\n\n` +
+        `[ADD_HABIT: Minum Air Putih 2.5 Liter Seharian | Physical / Health | 5 | JIKA bangun tidur dan sebelum makan, MAKA minum 1 gelas air putih | Kebugaran & Daya Tahan Tubuh Prima]`;
+    }
+
+    // 11. Ucapan Terima Kasih / Positif
+    if (lower.includes('terima kasih') || lower.includes('makasih') || lower.includes('thanks') || lower.includes('mantap') || lower.includes('keren') || lower.includes('oke') || lower.includes('siap')) {
+      return `🙌 **Sama-sama! Anda luar biasa!** 🔥\n\n` +
+        `Ingat, setiap centang kecil hari ini adalah investasi masa depan Anda. Mari wujudkan mimpi selangkah demi selangkah! 🚀`;
     }
 
     // Default General Coach response
-    return `🎯 **Saran dari AI Coach:**\n\n` +
-      `Kunci dari pencapaian besar adalah **konsistensi mikro** (1% lebih baik setiap hari).\n\n` +
-      `• Hari ini progres Anda: **${completedToday}/${habits.length} habit** (${rate}%).\n` +
-      `• Fokuskan energi pada habit yang memiliki kaitan langsung dengan Goal Utama Anda.\n\n` +
-      `*Pilih salah satu tombol cepat di bawah atau tanyakan hal spesifik tentang kebiasaan & goal Anda!* ✨`;
+    return `🎯 **Panduan dari AI Habit Coach:**\n\n` +
+      `Kunci dari pencapaian impian besar adalah **konsistensi mikro** (1% lebih baik setiap hari).\n\n` +
+      `• Hari ini progres Anda: **${completedToday}/${habits.length} habit** selesai (${rate}%).\n` +
+      `• Pusatkan fokus pada kebiasaan yang paling berpengaruh pada target utama Anda.\n\n` +
+      `[ADD_HABIT: Fokus 1 Kebiasaan Utama Hari Ini | Intellectual / Career | 15 | JIKA waktu luang tiba, MAKA kerjakan 1 tugas penting tanpa distraksi | ${mainGoal}]\n\n` +
+      `*Silakan tanyakan hal spesifik tentang rutinitas, waktu, atau tujuan yang ingin Anda bangun!* ✨`;
   }
 
   // =========================================================================
@@ -616,21 +737,31 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     }
 
     try {
-      await this.simulateTypingDelay(500);
-
       let generatedDesc = '';
-      let targetMonths = 3;
+      const apiKey = (StorageManager.getApiKey() || '').trim();
 
-      if (category === 'Spiritual') {
-        generatedDesc = `Memperkuat disiplin spiritual dan ketenangan batin secara konsisten melalui ibadah harian dan pemahaman nilai luhur.`;
-      } else if (category === 'Physical / Health') {
-        generatedDesc = `Meningkatkan stamina, daya tahan tubuh prima, dan mencapai komposisi fisik ideal dengan nutrisi serta olahraga teratur.`;
-      } else if (category === 'Intellectual / Career') {
-        generatedDesc = `Menguasai keahlian kunci ${title}, membangun portofolio kredibel, dan meningkatkan kapabilitas profesional secara signifikan.`;
-      } else if (category === 'Keuangan') {
-        generatedDesc = `Membangun kestabilan finansial, mengontrol arus kas, dan mengalokasikan tabungan serta investasi secara disiplin.`;
-      } else {
-        generatedDesc = `Mencapai target ${title} secara terencana dengan langkah-langkah terstruktur dan evaluasi mingguan.`;
+      if (apiKey) {
+        try {
+          const aiPrompt = `Buatkan deskripsi motivasi dan strategi singkat (2 kalimat padat) dalam bahasa Indonesia untuk Goal berikut: "${title}" (Kategori: ${category}). Tulis langsung isi deskripsinya tanpa kata pembuka.`;
+          generatedDesc = await this.callGeminiAPI(aiPrompt, "You are an expert productivity coach. Respond with concise, motivating goal descriptions in Indonesian.");
+        } catch (e) {
+          console.warn('Gemini breakdown fallback to heuristics:', e);
+        }
+      }
+
+      if (!generatedDesc) {
+        await this.simulateTypingDelay(350);
+        if (category === 'Spiritual') {
+          generatedDesc = `Memperkuat disiplin spiritual dan ketenangan batin secara konsisten melalui ibadah harian dan pemahaman nilai luhur.`;
+        } else if (category === 'Physical / Health') {
+          generatedDesc = `Meningkatkan stamina, daya tahan tubuh prima, dan mencapai komposisi fisik ideal dengan nutrisi serta olahraga teratur.`;
+        } else if (category === 'Intellectual / Career') {
+          generatedDesc = `Menguasai keahlian kunci ${title}, membangun portofolio kredibel, dan meningkatkan kapabilitas profesional secara signifikan.`;
+        } else if (category === 'Keuangan') {
+          generatedDesc = `Membangun kestabilan finansial, mengontrol arus kas, dan mengalokasikan tabungan serta investasi secara disiplin.`;
+        } else {
+          generatedDesc = `Mencapai target ${title} secara terencana dengan langkah-langkah terstruktur dan evaluasi mingguan.`;
+        }
       }
 
       if (descArea && !descArea.value.trim()) {
@@ -639,7 +770,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
 
       if (targetInput && !targetInput.value) {
         const d = new Date();
-        d.setMonth(d.getMonth() + targetMonths);
+        d.setMonth(d.getMonth() + 3);
         targetInput.value = d.toISOString().slice(0, 10);
       }
 
@@ -676,23 +807,35 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     }
 
     try {
-      await this.simulateTypingDelay(400);
-
       let generatedPlan = '';
-      const lower = title.toLowerCase();
+      const apiKey = (StorageManager.getApiKey() || '').trim();
 
-      if (lower.includes('sholat') || lower.includes('doa') || lower.includes('quran') || cat === 'Spiritual') {
-        generatedPlan = `JIKA adzan berkumandang atau selesai sholat fardhu, MAKA saya langsung melakukan ${title} selama ${dur} menit tanpa menunda.`;
-      } else if (lower.includes('workout') || lower.includes('senam') || lower.includes('lari') || lower.includes('olahraga') || cat === 'Physical / Health') {
-        generatedPlan = `JIKA jam 06:00 pagi atau selesai ganti pakaian olahraga, MAKA saya langsung memulai ${title} selama ${dur} menit.`;
-      } else if (lower.includes('baca') || lower.includes('buku') || lower.includes('read')) {
-        generatedPlan = `JIKA selesai makan malam atau sebelum tidur, MAKA saya matikan notifikasi HP dan membaca selama ${dur} menit.`;
-      } else if (lower.includes('code') || lower.includes('coding') || lower.includes('ai') || lower.includes('belajar') || cat === 'Intellectual / Career') {
-        generatedPlan = `JIKA jam 09:00 pagi atau duduk di meja kerja, MAKA saya pasang timer pomodoro ${dur} menit untuk fokus pada ${title}.`;
-      } else if (lower.includes('uang') || lower.includes('kas') || cat === 'Keuangan') {
-        generatedPlan = `JIKA selesai melakukan transaksi pembayaran, MAKA saya langsung mencatat pengeluaran di aplikasi.`;
-      } else {
-        generatedPlan = `JIKA waktu rutinitas harian tiba, MAKA saya segera menjalankan ${title} selama ${dur} menit dengan penuh fokus.`;
+      if (apiKey) {
+        try {
+          const aiPrompt = `Buatkan 1 baris rencana pemicu kebiasaan If-Then (Implementation Intentions / Atomic Habits) untuk habit: "${title}" (Kategori: ${cat}, Durasi: ${dur} menit). Format: "JIKA [kondisi pemicu spesifik], MAKA [tindakan konkret]". Tulis HANYA 1 kalimat tersebut dalam bahasa Indonesia.`;
+          generatedPlan = await this.callGeminiAPI(aiPrompt, "You are an Atomic Habits specialist. Output only 1 line formatted as 'JIKA ... MAKA ...'.");
+          generatedPlan = generatedPlan.replace(/^["']|["']$/g, '').trim();
+        } catch (e) {
+          console.warn('Gemini If-Then fallback to heuristics:', e);
+        }
+      }
+
+      if (!generatedPlan) {
+        await this.simulateTypingDelay(300);
+        const lower = title.toLowerCase();
+        if (lower.includes('sholat') || lower.includes('doa') || lower.includes('quran') || cat === 'Spiritual') {
+          generatedPlan = `JIKA adzan berkumandang atau selesai sholat fardhu, MAKA saya langsung melakukan ${title} selama ${dur} menit tanpa menunda.`;
+        } else if (lower.includes('workout') || lower.includes('senam') || lower.includes('lari') || lower.includes('olahraga') || cat === 'Physical / Health') {
+          generatedPlan = `JIKA jam 06:00 pagi atau selesai ganti pakaian olahraga, MAKA saya langsung memulai ${title} selama ${dur} menit.`;
+        } else if (lower.includes('baca') || lower.includes('buku') || lower.includes('read')) {
+          generatedPlan = `JIKA selesai makan malam atau sebelum tidur, MAKA saya matikan notifikasi HP dan membaca selama ${dur} menit.`;
+        } else if (lower.includes('code') || lower.includes('coding') || lower.includes('ai') || lower.includes('belajar') || cat === 'Intellectual / Career') {
+          generatedPlan = `JIKA jam 09:00 pagi atau duduk di meja kerja, MAKA saya pasang timer pomodoro ${dur} menit untuk fokus pada ${title}.`;
+        } else if (lower.includes('uang') || lower.includes('kas') || cat === 'Keuangan') {
+          generatedPlan = `JIKA selesai melakukan transaksi pembayaran, MAKA saya langsung mencatat pengeluaran di aplikasi.`;
+        } else {
+          generatedPlan = `JIKA waktu rutinitas harian tiba, MAKA saya segera menjalankan ${title} selama ${dur} menit dengan penuh fokus.`;
+        }
       }
 
       if (planInput) {
@@ -700,7 +843,7 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
       }
 
       if (window.SoundEffects) SoundEffects.playPop();
-      GoalGettenApp.showToast(`✨ Rencana If-Then dibuat!`, 'success');
+      GoalGettenApp.showToast(`✨ Rencana If-Then berhasil dibuat!`, 'success');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -726,34 +869,61 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
     }
 
     try {
-      await this.simulateTypingDelay(600);
-
       const generated = [];
-      const lower = promptText.toLowerCase();
       const goals = StorageManager.getGoals();
       const mainGoal = goals[0] ? goals[0].title : 'Goal Utama';
+      const apiKey = (StorageManager.getApiKey() || '').trim();
 
-      if (lower.includes('sehat') || lower.includes('turun') || lower.includes('fit') || lower.includes('berat badan') || lower.includes('olahraga')) {
-        generated.push(
-          { title: 'Minum 500ml Air Putih Pagi', category: 'Physical / Health', duration: 5, goalName: mainGoal, plan: 'JIKA bangun tidur, MAKA segera minum air putih', selected: true },
-          { title: 'Workout / Senam HIIT 20 Menit', category: 'Physical / Health', duration: 20, goalName: mainGoal, plan: 'JIKA jam 06:30 pagi, MAKA pakai baju olahraga dan senam', selected: true },
-          { title: 'Jalan Santai 5.000 Langkah', category: 'Physical / Health', duration: 30, goalName: mainGoal, plan: 'JIKA sore hari jam 16:30, MAKA jalan santai di sekitar rumah', selected: true },
-          { title: 'Tidur Berkualitas Sebelum Jam 23:00', category: 'Physical / Health', duration: 15, goalName: mainGoal, plan: 'JIKA jam 22:30, MAKA matikan lampu dan jauhkan ponsel', selected: true }
-        );
-      } else if (lower.includes('coding') || lower.includes('karir') || lower.includes('ai') || lower.includes('kerja') || lower.includes('belajar')) {
-        generated.push(
-          { title: 'Deep Work Ngoding 45 Menit', category: 'Intellectual / Career', duration: 45, goalName: mainGoal, plan: 'JIKA jam 09:00 pagi, MAKA buka IDE dan matikan notifikasi', selected: true },
-          { title: 'Baca Dokumentasi & Paper AI 20 Menit', category: 'Intellectual / Career', duration: 20, goalName: mainGoal, plan: 'JIKA jam 13:30, MAKA pelajari 1 teknik baru', selected: true },
-          { title: 'Review & Rapikan Kode / Commit Git', category: 'Intellectual / Career', duration: 15, goalName: mainGoal, plan: 'JIKA sebelum mengakhiri kerja, MAKA push ke GitHub', selected: true },
-          { title: 'Tulis Catatan / Lesson Learned Harian', category: 'Intellectual / Career', duration: 10, goalName: mainGoal, plan: 'JIKA jam 17:00, MAKA rangkum 1 insight penting', selected: true }
-        );
-      } else {
-        generated.push(
-          { title: 'Fokus Prioritas Utama 30 Menit', category: 'Intellectual / Career', duration: 30, goalName: mainGoal, plan: 'JIKA jam 08:30, MAKA kerjakan hal terpenting pertama', selected: true },
-          { title: 'Peregangan Tubuh & Olahraga 15 Menit', category: 'Physical / Health', duration: 15, goalName: mainGoal, plan: 'JIKA jam 06:00, MAKA lakukan peregangan tubuh', selected: true },
-          { title: 'Tilawah / Doa Refleksi Spiritual', category: 'Spiritual', duration: 15, goalName: mainGoal, plan: 'JIKA selesai sholat subuh, MAKA luangkan 15 menit', selected: true },
-          { title: 'Evaluasi Arus Kas Harian', category: 'Keuangan', duration: 5, goalName: mainGoal, plan: 'JIKA sebelum tidur, MAKA catat pengeluaran hari ini', selected: true }
-        );
+      if (apiKey) {
+        try {
+          const aiPrompt = `Berdasarkan tujuan pengguna: "${promptText}", buatkan 4-5 daftar habit harian konkret. Format tiap baris persis: "Judul Habit | Kategori | DurasiMenit | Goal | Rencana If-Then". Contoh kategori: Spiritual, Physical / Health, Intellectual / Career, Keuangan, Emotional / Personal, Creativity / Custom. Tuliskan satu baris per habit tanpa nomor.`;
+          const rawResponse = await this.callGeminiAPI(aiPrompt, "You generate structured habit lists. Output one habit per line using pipe format: Title | Category | Duration | Goal | Plan");
+          const lines = rawResponse.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          lines.forEach(line => {
+            const cleanLine = line.replace(/^\d+[\.\)]\s*/, '');
+            const parts = cleanLine.split('|').map(p => p.trim());
+            if (parts.length >= 2 && parts[0]) {
+              generated.push({
+                title: parts[0],
+                category: GoalGettenApp.normalizeCategory(parts[1] || 'Spiritual'),
+                duration: parseInt(parts[2]) || 15,
+                goalName: parts[3] || mainGoal,
+                plan: parts[4] || '',
+                selected: true
+              });
+            }
+          });
+        } catch (e) {
+          console.warn('Gemini mass generate fallback to heuristics:', e);
+        }
+      }
+
+      if (generated.length === 0) {
+        await this.simulateTypingDelay(500);
+        const lower = promptText.toLowerCase();
+
+        if (lower.includes('sehat') || lower.includes('turun') || lower.includes('fit') || lower.includes('berat badan') || lower.includes('olahraga')) {
+          generated.push(
+            { title: 'Minum 500ml Air Putih Pagi', category: 'Physical / Health', duration: 5, goalName: mainGoal, plan: 'JIKA bangun tidur, MAKA segera minum air putih', selected: true },
+            { title: 'Workout / Senam HIIT 20 Menit', category: 'Physical / Health', duration: 20, goalName: mainGoal, plan: 'JIKA jam 06:30 pagi, MAKA pakai baju olahraga dan senam', selected: true },
+            { title: 'Jalan Santai 5.000 Langkah', category: 'Physical / Health', duration: 30, goalName: mainGoal, plan: 'JIKA sore hari jam 16:30, MAKA jalan santai di sekitar rumah', selected: true },
+            { title: 'Tidur Berkualitas Sebelum Jam 23:00', category: 'Physical / Health', duration: 15, goalName: mainGoal, plan: 'JIKA jam 22:30, MAKA matikan lampu dan jauhkan ponsel', selected: true }
+          );
+        } else if (lower.includes('coding') || lower.includes('karir') || lower.includes('ai') || lower.includes('kerja') || lower.includes('belajar')) {
+          generated.push(
+            { title: 'Deep Work Sesi 45 Menit', category: 'Intellectual / Career', duration: 45, goalName: mainGoal, plan: 'JIKA jam 09:00 pagi, MAKA buka IDE/materi dan matikan notifikasi', selected: true },
+            { title: 'Baca Dokumentasi & Paper Kunci 20 Menit', category: 'Intellectual / Career', duration: 20, goalName: mainGoal, plan: 'JIKA jam 13:30, MAKA pelajari 1 teknik baru', selected: true },
+            { title: 'Review & Rapikan Proyek / Catat Progres', category: 'Intellectual / Career', duration: 15, goalName: mainGoal, plan: 'JIKA sebelum mengakhiri kerja, MAKA simpan progres', selected: true },
+            { title: 'Tulis Catatan / Insight Harian', category: 'Intellectual / Career', duration: 10, goalName: mainGoal, plan: 'JIKA jam 17:00, MAKA rangkum 1 insight penting', selected: true }
+          );
+        } else {
+          generated.push(
+            { title: 'Fokus Prioritas Utama 30 Menit', category: 'Intellectual / Career', duration: 30, goalName: mainGoal, plan: 'JIKA jam 08:30, MAKA kerjakan hal terpenting pertama', selected: true },
+            { title: 'Peregangan Tubuh & Olahraga 15 Menit', category: 'Physical / Health', duration: 15, goalName: mainGoal, plan: 'JIKA jam 06:00, MAKA lakukan peregangan tubuh', selected: true },
+            { title: 'Tilawah / Doa Refleksi Spiritual', category: 'Spiritual', duration: 15, goalName: mainGoal, plan: 'JIKA selesai sholat subuh, MAKA luangkan 15 menit', selected: true },
+            { title: 'Evaluasi Arus Kas Harian', category: 'Keuangan', duration: 5, goalName: mainGoal, plan: 'JIKA sebelum tidur, MAKA catat pengeluaran hari ini', selected: true }
+          );
+        }
       }
 
       GoalGettenApp.parsedMassHabits = generated;
