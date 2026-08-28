@@ -21,6 +21,12 @@ class GoalGettenApp {
   static currentStatusFilter = 'all'; // 'all', 'pending', 'completed'
   static currentCategoryFilter = 'all';
 
+  // Project Management Filtering State
+  static currentProjectStatusFilter = 'all'; // 'all', 'in-progress', 'completed'
+  static currentProjectCategoryFilter = 'all';
+  static currentProjectPriorityFilter = 'all';
+  static currentProjectSearch = '';
+
   // Focus Pomodoro Timer State
   static activeTimerHabit = null;
   static timerTotalSeconds = 900;
@@ -126,6 +132,7 @@ class GoalGettenApp {
     switch (this.currentTab) {
       case 'fokus-hari-ini': this.renderFokusHariIni(); break;
       case 'daftar-goal': this.renderDaftarGoals(); break;
+      case 'proyek-tugas': this.renderProjectsTab(); break;
       case 'matriks-habit': this.renderMatriksHabit(); break;
       case 'progres-ringkas': this.renderProgresRingkas(); break;
       case 'kalender-rutinitas': this.renderKalenderRutinitas(); break;
@@ -621,6 +628,503 @@ class GoalGettenApp {
 
   // =========================================================================
   // 5. Tab: Matriks Kelompok Habit (Category Matrix with 7-Day Pills)
+  // =========================================================================
+  // =========================================================================
+  // 2.5 Proyek & Manajemen Tugas 📁
+  // =========================================================================
+  static renderProjectsTab() {
+    const container = document.getElementById('projects-container');
+    if (!container) return;
+
+    const projects = StorageManager.getProjects();
+
+    // Summary Metric calculations
+    const totalProjects = projects.length;
+    let totalTasks = 0;
+    let completedTasks = 0;
+    let inProgressProjectsCount = 0;
+    let completedProjectsCount = 0;
+    let totalProgressSum = 0;
+
+    projects.forEach(p => {
+      const tasks = p.tasks || [];
+      totalTasks += tasks.length;
+      const doneCount = tasks.filter(t => t.done).length;
+      completedTasks += doneCount;
+      const prog = tasks.length > 0 ? Math.round((doneCount / tasks.length) * 100) : 0;
+      totalProgressSum += prog;
+      if (prog === 100 && tasks.length > 0) {
+        completedProjectsCount++;
+      } else {
+        inProgressProjectsCount++;
+      }
+    });
+
+    const avgProgress = totalProjects > 0 ? Math.round(totalProgressSum / totalProjects) : 0;
+
+    // Update summary stat boxes
+    const totalEl = document.getElementById('proj-stat-total');
+    const activeEl = document.getElementById('proj-stat-active');
+    const doneEl = document.getElementById('proj-stat-tasks-done');
+    const avgEl = document.getElementById('proj-stat-avg-progress');
+
+    if (totalEl) totalEl.textContent = `${totalProjects} Proyek`;
+    if (activeEl) activeEl.textContent = `${inProgressProjectsCount} Berjalan`;
+    if (doneEl) doneEl.textContent = `${completedTasks} / ${totalTasks} Tugas`;
+    if (avgEl) avgEl.textContent = `${avgProgress}%`;
+
+    // Filter projects
+    const q = (this.currentProjectSearch || '').toLowerCase().trim();
+    let filtered = projects.filter(p => {
+      const tasks = p.tasks || [];
+      const doneCount = tasks.filter(t => t.done).length;
+      const isCompleted = tasks.length > 0 && doneCount === tasks.length;
+
+      // Status filter
+      if (this.currentProjectStatusFilter === 'in-progress' && isCompleted) return false;
+      if (this.currentProjectStatusFilter === 'completed' && !isCompleted) return false;
+
+      // Category filter
+      if (this.currentProjectCategoryFilter !== 'all' && (p.category || '').toLowerCase() !== this.currentProjectCategoryFilter.toLowerCase()) {
+        return false;
+      }
+
+      // Priority filter
+      if (this.currentProjectPriorityFilter !== 'all' && (p.priority || 'medium').toLowerCase() !== this.currentProjectPriorityFilter.toLowerCase()) {
+        return false;
+      }
+
+      // Search query
+      if (q) {
+        const titleMatch = (p.title || '').toLowerCase().includes(q);
+        const descMatch = (p.description || '').toLowerCase().includes(q);
+        const taskMatch = tasks.some(t => (t.title || '').toLowerCase().includes(q));
+        if (!titleMatch && !descMatch && !taskMatch) return false;
+      }
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 3.5rem 1.5rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-glass);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.65rem;">📁</div>
+          <h4 style="font-size: 1.15rem; color: #fff; margin-bottom: 0.35rem;">Tidak Ada Proyek yang Sesuai Filter</h4>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+            ${q || this.currentProjectStatusFilter !== 'all' || this.currentProjectCategoryFilter !== 'all' ? 'Coba ubah kata kunci pencarian atau filter di atas.' : 'Mulai rancang proyek baru untuk mengorganisir tugas-tugas terstruktur Anda.'}
+          </p>
+          <button class="btn btn-primary" onclick="GoalGettenApp.openAddProjectModal()">+ Buat Proyek Baru</button>
+        </div>
+      `;
+      return;
+    }
+
+    const priorityBadges = {
+      'high': '<span class="proj-priority-badge high">🔥 Tinggi</span>',
+      'medium': '<span class="proj-priority-badge medium">⚡ Sedang</span>',
+      'low': '<span class="proj-priority-badge low">🟢 Normal</span>'
+    };
+
+    container.innerHTML = filtered.map(p => {
+      const tasks = p.tasks || [];
+      const totalT = tasks.length;
+      const doneT = tasks.filter(t => t.done).length;
+      const progress = totalT > 0 ? Math.round((doneT / totalT) * 100) : 0;
+      const isComplete = totalT > 0 && doneT === totalT;
+      const cardColor = p.color || '#6366f1';
+
+      return `
+        <div class="project-card-v2 ${isComplete ? 'completed' : ''}" style="--proj-color: ${cardColor};" data-project-id="${p.id}">
+          <div class="project-card-header">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span class="tag-pill tag-category" style="background: ${cardColor}20; color: ${cardColor};">${p.category || 'General'}</span>
+              ${priorityBadges[p.priority] || priorityBadges['medium']}
+              ${isComplete ? '<span class="proj-status-badge complete">✓ Selesai 100%</span>' : '<span class="proj-status-badge in-progress">⏳ Berjalan</span>'}
+            </div>
+            <div class="project-card-actions">
+              <button class="icon-btn" title="Edit Proyek" onclick="GoalGettenApp.openEditProjectModal('${p.id}')">✏️</button>
+              <button class="icon-btn" title="Hapus Proyek" onclick="GoalGettenApp.deleteProject('${p.id}')">🗑️</button>
+            </div>
+          </div>
+
+          <div class="project-card-main">
+            <h3 class="project-title">${p.title}</h3>
+            ${p.description ? `<p class="project-desc">${p.description}</p>` : ''}
+          </div>
+
+          <!-- Progress Bar & Indicator -->
+          <div class="project-progress-area">
+            <div class="project-progress-meta">
+              <span class="progress-label">Progres Penyelesaian</span>
+              <span class="progress-percent-val ${isComplete ? 'text-emerald' : ''}">${progress}% (${doneT}/${totalT} Tugas)</span>
+            </div>
+            <div class="plant-progress-bar" style="height: 9px;">
+              <div class="plant-progress-fill" style="width: ${progress}%; background: ${isComplete ? 'linear-gradient(90deg, #10b981, #059669)' : cardColor}; transition: width 0.3s ease;"></div>
+            </div>
+            <div class="project-deadline-row">
+              <span>📅 Tenggat: <strong>${p.deadline ? GoalGettenApp.formatIndonesianShort(p.deadline) : 'Tanpa Batas Waktu'}</strong></span>
+              ${p.createdAt ? `<span>Dibuat: ${GoalGettenApp.formatIndonesianShort(p.createdAt)}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- Task Checklist Section -->
+          <div class="project-tasks-wrapper">
+            <div class="project-tasks-header">
+              <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);">Daftar Tugas (${doneT}/${totalT})</span>
+            </div>
+
+            <div class="project-tasks-list">
+              ${tasks.length === 0 ? '<div class="project-no-tasks">Belum ada tugas. Tambahkan tugas pertama di bawah!</div>' : ''}
+              ${tasks.map(t => `
+                <div class="project-task-item ${t.done ? 'done' : ''}">
+                  <div class="project-task-left" onclick="GoalGettenApp.toggleProjectTask('${p.id}', '${t.id}')">
+                    <div class="project-task-checkbox ${t.done ? 'checked' : ''}">
+                      ${t.done ? '✓' : ''}
+                    </div>
+                    <span class="project-task-title">${t.title}</span>
+                  </div>
+                  <button class="project-task-delete-btn" title="Hapus Tugas" onclick="GoalGettenApp.deleteProjectTask('${p.id}', '${t.id}')">✕</button>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Quick Add Task Form -->
+            <div class="project-quick-add-task">
+              <input type="text" class="quick-task-input" id="quick-task-input-${p.id}" placeholder="+ Tambah tugas baru..." onkeydown="if(event.key==='Enter'){event.preventDefault(); GoalGettenApp.quickAddTaskToProject('${p.id}');}">
+              <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.quickAddTaskToProject('${p.id}')">
+                <span>+ Tambah</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  static setProjectStatusFilter(status) {
+    this.currentProjectStatusFilter = status;
+    document.querySelectorAll('[data-proj-status]').forEach(btn => {
+      btn.classList.toggle('active', btn.getAttribute('data-proj-status') === status);
+    });
+    this.renderProjectsTab();
+  }
+
+  static setProjectCategoryFilter(cat) {
+    this.currentProjectCategoryFilter = cat;
+    this.renderProjectsTab();
+  }
+
+  static setProjectPriorityFilter(priority) {
+    this.currentProjectPriorityFilter = priority;
+    this.renderProjectsTab();
+  }
+
+  static handleProjectSearch(query) {
+    this.currentProjectSearch = query || '';
+    this.renderProjectsTab();
+  }
+
+  static toggleProjectTask(projectId, taskId) {
+    const projects = StorageManager.getProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project || !project.tasks) return;
+
+    const task = project.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    task.done = !task.done;
+    StorageManager.saveProjects(projects);
+
+    if (task.done) {
+      if (window.GamificationManager) {
+        GamificationManager.addXP(20);
+      }
+      if (window.SoundEffects) {
+        SoundEffects.playPop();
+      }
+
+      const allDone = project.tasks.every(t => t.done);
+      if (allDone && project.tasks.length > 0) {
+        if (window.ConfettiEngine) ConfettiEngine.launch(3000);
+        if (window.SoundEffects) SoundEffects.playLevelUp();
+        if (window.GamificationManager) GamificationManager.addXP(100);
+        GoalGettenApp.showToast(`🎉 Proyek Selesai 100%: "${project.title}" (+100 XP)`, 'success', 4500);
+      } else {
+        GoalGettenApp.showToast(`✓ Tugas selesai: "${task.title}" (+20 XP)`, 'info', 1800);
+      }
+    }
+
+    this.renderProjectsTab();
+  }
+
+  static quickAddTaskToProject(projectId) {
+    const input = document.getElementById(`quick-task-input-${projectId}`);
+    if (!input) return;
+    const title = input.value.trim();
+    if (!title) return;
+
+    const projects = StorageManager.getProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    if (!project.tasks) project.tasks = [];
+    project.tasks.push({
+      id: 't-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      title: title,
+      done: false
+    });
+
+    StorageManager.saveProjects(projects);
+    input.value = '';
+    this.renderProjectsTab();
+    this.showToast('✅ Tugas baru ditambahkan!', 'success', 1800);
+  }
+
+  static deleteProjectTask(projectId, taskId) {
+    const projects = StorageManager.getProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project || !project.tasks) return;
+
+    project.tasks = project.tasks.filter(t => t.id !== taskId);
+    StorageManager.saveProjects(projects);
+    this.renderProjectsTab();
+    this.showToast('🗑️ Tugas dihapus', 'info', 1500);
+  }
+
+  static openAddProjectModal() {
+    const heading = document.getElementById('modal-project-heading');
+    if (heading) heading.textContent = '+ Buat Proyek Baru';
+    document.getElementById('modal-project-id').value = '';
+    document.getElementById('modal-project-title').value = '';
+    document.getElementById('modal-project-category').value = 'Intellectual / Career';
+    document.getElementById('modal-project-priority').value = 'medium';
+    document.getElementById('modal-project-desc').value = '';
+
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    document.getElementById('modal-project-deadline').value = d.toISOString().slice(0, 10);
+
+    const taskList = document.getElementById('modal-project-tasks-list');
+    if (taskList) {
+      taskList.innerHTML = '';
+      this.addProjectTaskRow('Riset & perencanaan awal');
+      this.addProjectTaskRow('Eksekusi pengerjaan tahap inti');
+      this.addProjectTaskRow('Review & penyelesaian akhir');
+    }
+
+    const modal = document.getElementById('modal-project');
+    if (modal) modal.classList.add('active');
+    setTimeout(() => document.getElementById('modal-project-title').focus(), 200);
+  }
+
+  static openEditProjectModal(projectId) {
+    const projects = StorageManager.getProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    const heading = document.getElementById('modal-project-heading');
+    if (heading) heading.textContent = '✏️ Edit Proyek';
+    document.getElementById('modal-project-id').value = project.id;
+    document.getElementById('modal-project-title').value = project.title || '';
+    document.getElementById('modal-project-category').value = project.category || 'Intellectual / Career';
+    document.getElementById('modal-project-priority').value = project.priority || 'medium';
+    document.getElementById('modal-project-deadline').value = project.deadline || '';
+    document.getElementById('modal-project-desc').value = project.description || '';
+
+    const taskList = document.getElementById('modal-project-tasks-list');
+    if (taskList) {
+      taskList.innerHTML = '';
+      const tasks = project.tasks || [];
+      if (tasks.length === 0) {
+        this.addProjectTaskRow('');
+      } else {
+        tasks.forEach(t => {
+          this.addProjectTaskRow(t.title, t.done, t.id);
+        });
+      }
+    }
+
+    const modal = document.getElementById('modal-project');
+    if (modal) modal.classList.add('active');
+  }
+
+  static addProjectTaskRow(taskText = '', isDone = false, existingId = null) {
+    const container = document.getElementById('modal-project-tasks-list');
+    if (!container) return;
+
+    const rowId = existingId || ('t-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
+    const row = document.createElement('div');
+    row.className = 'project-modal-task-row';
+    row.setAttribute('data-task-id', rowId);
+    row.innerHTML = `
+      <input type="checkbox" class="task-row-checkbox" ${isDone ? 'checked' : ''} title="Tandai selesai">
+      <input type="text" class="form-control task-row-input" placeholder="Tuliskan nama tugas..." value="${taskText.replace(/"/g, '&quot;')}">
+      <button type="button" class="icon-btn task-row-remove-btn" title="Hapus baris" onclick="this.closest('.project-modal-task-row').remove()">✕</button>
+    `;
+    container.appendChild(row);
+  }
+
+  static async smartBreakdownProjectTasks() {
+    const titleInput = document.getElementById('modal-project-title');
+    const catSelect = document.getElementById('modal-project-category');
+    const descArea = document.getElementById('modal-project-desc');
+    const btn = document.getElementById('btn-ai-project-breakdown');
+
+    if (!titleInput || !titleInput.value.trim()) {
+      GoalGettenApp.showToast('Ketik Nama Proyek terlebih dahulu agar AI dapat merancang tugas!', 'warning');
+      if (titleInput) titleInput.focus();
+      return;
+    }
+
+    const title = titleInput.value.trim();
+    const cat = catSelect ? catSelect.value : 'Intellectual / Career';
+
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span>⏳ Merancang tugas...</span>`;
+    }
+
+    try {
+      const generatedTasks = [];
+      const apiKey = window.StorageManager ? (StorageManager.getApiKey() || '').trim() : '';
+
+      if (apiKey && window.AICoachManager) {
+        try {
+          const prompt = `Pecah proyek berikut menjadi 4-5 tugas konkret dan terukur: "${title}" (Kategori: ${cat}). Tuliskan hanya 1 tugas per baris tanpa penomoran.`;
+          const raw = await AICoachManager.callGeminiAPI(prompt, "You are a professional project manager. Output 4-5 concise actionable tasks in Indonesian, one per line.");
+          const lines = raw.split(/\r?\n/).map(l => l.replace(/^\d+[\.\)]\s*|-\s*/, '').trim()).filter(Boolean);
+          lines.forEach(l => {
+            if (l.length > 2) generatedTasks.push(l);
+          });
+        } catch (e) {
+          console.warn('Gemini project breakdown fallback:', e);
+        }
+      }
+
+      if (generatedTasks.length === 0) {
+        await new Promise(r => setTimeout(r, 400));
+        generatedTasks.push(
+          `Riset kebutuhan & perencanaan struktur ${title}`,
+          `Susun draf awal & siapkan dokumen kerja utama`,
+          `Eksekusi pengerjaan tahap inti secara bertahap`,
+          `Uji coba, evaluasi kualitas, & perbaiki kekurangan`,
+          `Finalisasi & peluncuran / serah terima hasil akhir`
+        );
+      }
+
+      const taskList = document.getElementById('modal-project-tasks-list');
+      if (taskList) {
+        taskList.innerHTML = '';
+        generatedTasks.forEach(tText => {
+          GoalGettenApp.addProjectTaskRow(tText, false);
+        });
+      }
+
+      if (descArea && !descArea.value.trim()) {
+        descArea.value = `Proyek strategis ${title} dengan tahapan terencana untuk mencapai hasil optimal.`;
+      }
+
+      if (window.SoundEffects) SoundEffects.playDing();
+      GoalGettenApp.showToast(`✨ AI berhasil merancang ${generatedTasks.length} tugas untuk "${title}"!`, 'success');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<span>✨ AI Breakdown Tugas</span>`;
+      }
+    }
+  }
+
+  static saveProjectFromForm() {
+    const id = document.getElementById('modal-project-id').value;
+    const title = document.getElementById('modal-project-title').value.trim();
+    const category = document.getElementById('modal-project-category').value;
+    const priority = document.getElementById('modal-project-priority').value;
+    const deadline = document.getElementById('modal-project-deadline').value;
+    const description = document.getElementById('modal-project-desc').value.trim();
+
+    if (!title) {
+      this.showToast('Nama proyek harus diisi!', 'warning');
+      return;
+    }
+
+    const catColors = {
+      'Spiritual': '#8b5cf6',
+      'Physical / Health': '#10b981',
+      'Intellectual / Career': '#6366f1',
+      'Keuangan': '#06b6d4',
+      'Emotional / Personal': '#f43f5e',
+      'Creativity / Custom': '#d946ef'
+    };
+
+    // Extract tasks from modal builder
+    const taskRows = document.querySelectorAll('#modal-project-tasks-list .project-modal-task-row');
+    const tasks = [];
+    taskRows.forEach(row => {
+      const taskId = row.getAttribute('data-task-id') || ('t-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
+      const checkbox = row.querySelector('.task-row-checkbox');
+      const input = row.querySelector('.task-row-input');
+      const taskTitle = input ? input.value.trim() : '';
+      if (taskTitle) {
+        tasks.push({
+          id: taskId,
+          title: taskTitle,
+          done: checkbox ? checkbox.checked : false
+        });
+      }
+    });
+
+    const projects = StorageManager.getProjects();
+
+    if (id) {
+      // Edit existing
+      const project = projects.find(p => p.id === id);
+      if (project) {
+        project.title = title;
+        project.category = category;
+        project.priority = priority;
+        project.deadline = deadline;
+        project.description = description;
+        project.tasks = tasks;
+        project.color = catColors[category] || project.color || '#6366f1';
+      }
+      this.showToast(`✨ Proyek "${title}" berhasil diperbarui!`, 'success');
+    } else {
+      // Create new
+      const newProject = {
+        id: 'proj-' + Date.now(),
+        title: title,
+        category: category,
+        priority: priority,
+        deadline: deadline,
+        description: description,
+        color: catColors[category] || '#6366f1',
+        createdAt: new Date().toISOString().slice(0, 10),
+        tasks: tasks
+      };
+      projects.unshift(newProject);
+      this.showToast(`🎉 Proyek "${title}" berhasil dibuat!`, 'success');
+    }
+
+    StorageManager.saveProjects(projects);
+    this.closeModal('modal-project');
+    this.renderProjectsTab();
+  }
+
+  static deleteProject(projectId) {
+    const projects = StorageManager.getProjects();
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+
+    this.showConfirm(`Hapus proyek "${project.title}" beserta seluruh tugasnya?`, () => {
+      const updated = projects.filter(p => p.id !== projectId);
+      StorageManager.saveProjects(updated);
+      this.renderProjectsTab();
+      this.showToast(`🗑️ Proyek "${project.title}" telah dihapus`, 'info');
+    });
+  }
+
+  // =========================================================================
+  // 3. Matriks Kelompok Habit ⚡
   // =========================================================================
   static renderMatriksHabit() {
     const container = document.getElementById('matriks-habits-container');
@@ -1629,6 +2133,14 @@ class GoalGettenApp {
         this.saveGoalFromForm();
       });
     }
+
+    const projectForm = document.getElementById('modal-project-form');
+    if (projectForm) {
+      projectForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveProjectFromForm();
+      });
+    }
   }
 
   static handleFrequencyChange(freq) {
@@ -2351,14 +2863,15 @@ class GoalGettenApp {
         return;
       }
 
-      // 1 to 6 -> Tabs
+      // 1 to 7 -> Tabs
       const tabMap = {
         '1': 'fokus-hari-ini',
         '2': 'daftar-goal',
-        '3': 'matriks-habit',
-        '4': 'progres-ringkas',
-        '5': 'kalender-rutinitas',
-        '6': 'analisis-cal'
+        '3': 'proyek-tugas',
+        '4': 'matriks-habit',
+        '5': 'progres-ringkas',
+        '6': 'kalender-rutinitas',
+        '7': 'analisis-cal'
       };
       if (tabMap[e.key]) {
         e.preventDefault();

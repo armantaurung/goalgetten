@@ -52,6 +52,12 @@
           </a>
         </li>
         <li class="nav-item">
+          <a href="#" data-tab="proyek-tugas">
+            <span class="nav-icon">📁</span>
+            <span>Proyek & Tugas</span>
+          </a>
+        </li>
+        <li class="nav-item">
           <a href="#" data-tab="matriks-habit">
             <span class="nav-icon">⚡</span>
             <span>Matriks Kelompok Habit</span>
@@ -417,6 +423,98 @@
 
         <!-- Full Analytics Dashboard Grid -->
         <div id="analytics-dashboard-view" style="margin-top: 1.5rem;"></div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- PAGE: PROYEK & TUGAS (PROJECT MANAGEMENT) -->
+      <!-- =================================================================== -->
+      <section class="page-section" id="section-proyek-tugas" style="display: none;">
+        <div class="column-header" style="flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 1.35rem;">Proyek & Manajemen Tugas 📁</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">
+              Kelola proyek bertahap, pantau progres to-do checklist, dan tuntaskan target hingga 100%.
+            </p>
+          </div>
+          <button class="btn btn-primary" onclick="GoalGettenApp.openAddProjectModal()">
+            <span>+ Buat Proyek Baru</span>
+          </button>
+        </div>
+
+        <!-- Project Summary Metric Grid -->
+        <div class="summary-grid" style="margin-top: 1.25rem;">
+          <div class="stat-box">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">📁</div>
+            <div class="stat-info">
+              <h4>Total Proyek</h4>
+              <div class="stat-value" id="proj-stat-total">0 Proyek</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⏳</div>
+            <div class="stat-info">
+              <h4>Sedang Berjalan</h4>
+              <div class="stat-value" id="proj-stat-active">0 Proyek</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">✓</div>
+            <div class="stat-info">
+              <h4>Tugas Selesai</h4>
+              <div class="stat-value" id="proj-stat-tasks-done">0 / 0 Tugas</div>
+            </div>
+          </div>
+
+          <div class="stat-box">
+            <div class="stat-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">📈</div>
+            <div class="stat-info">
+              <h4>Rata-rata Progres</h4>
+              <div class="stat-value" id="proj-stat-avg-progress">0%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project Filter & Search Toolbar -->
+        <div class="habit-filter-toolbar" style="margin-top: 1.5rem;">
+          <div class="filter-search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="project-search-input" class="search-input" placeholder="Cari nama proyek atau tugas..." oninput="GoalGettenApp.handleProjectSearch(this.value)">
+          </div>
+
+          <div class="filter-pills-row">
+            <div class="filter-status-group">
+              <button class="filter-pill-btn active" data-proj-status="all" onclick="GoalGettenApp.setProjectStatusFilter('all')">Semua</button>
+              <button class="filter-pill-btn" data-proj-status="in-progress" onclick="GoalGettenApp.setProjectStatusFilter('in-progress')">Sedang Berjalan ⏳</button>
+              <button class="filter-pill-btn" data-proj-status="completed" onclick="GoalGettenApp.setProjectStatusFilter('completed')">Selesai 100% ✓</button>
+            </div>
+
+            <div class="filter-category-select-wrap">
+              <select id="project-category-filter" class="filter-category-select" onchange="GoalGettenApp.setProjectCategoryFilter(this.value)">
+                <option value="all">Semua Kategori</option>
+                <option value="Intellectual / Career">Intellectual / Career</option>
+                <option value="Physical / Health">Physical / Health</option>
+                <option value="Spiritual">Spiritual</option>
+                <option value="Keuangan">Keuangan</option>
+                <option value="Emotional / Personal">Emotional / Personal</option>
+                <option value="Creativity / Custom">Creativity / Custom</option>
+              </select>
+            </div>
+
+            <div class="filter-category-select-wrap">
+              <select id="project-priority-filter" class="filter-category-select" onchange="GoalGettenApp.setProjectPriorityFilter(this.value)">
+                <option value="all">Semua Prioritas</option>
+                <option value="high">🔥 Prioritas Tinggi</option>
+                <option value="medium">⚡ Prioritas Sedang</option>
+                <option value="low">🟢 Prioritas Normal</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Projects Grid Container -->
+        <div class="projects-grid-layout" id="projects-container" style="margin-top: 1.25rem;"></div>
       </section>
 
       <!-- App Global Footer -->
@@ -955,6 +1053,82 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
           <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-subgoal')">Batal</button>
           <button type="submit" class="btn btn-primary">Simpan Sub-Goal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TAMBAH / EDIT PROYEK -->
+  <div class="modal-overlay" id="modal-project">
+    <div class="modal-dialog large" style="max-width: 620px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+        <h3 id="modal-project-heading" style="font-family: var(--font-display); font-size: 1.3rem;">+ Buat Proyek Baru</h3>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-project')">✕</button>
+      </div>
+
+      <form id="modal-project-form">
+        <input type="hidden" id="modal-project-id">
+
+        <div class="form-group">
+          <label for="modal-project-title">Nama Proyek / Sasaran Kerja</label>
+          <input type="text" id="modal-project-title" class="form-control" placeholder="Contoh: Peluncuran Website Portofolio v2" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="modal-project-category">Kategori</label>
+            <select id="modal-project-category" class="form-control">
+              <option value="Intellectual / Career">Intellectual / Career</option>
+              <option value="Physical / Health">Physical / Health</option>
+              <option value="Spiritual">Spiritual</option>
+              <option value="Keuangan">Keuangan</option>
+              <option value="Emotional / Personal">Emotional / Personal</option>
+              <option value="Creativity / Custom">Creativity / Custom</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="modal-project-priority">Prioritas</label>
+            <select id="modal-project-priority" class="form-control">
+              <option value="high">🔥 Tinggi (High)</option>
+              <option value="medium" selected>⚡ Sedang (Medium)</option>
+              <option value="low">🟢 Normal (Low)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-project-deadline">Target Tenggat Waktu (Deadline)</label>
+          <input type="date" id="modal-project-deadline" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="modal-project-desc">Deskripsi &amp; Sasaran Utama Proyek</label>
+          <textarea id="modal-project-desc" class="form-control" rows="2" placeholder="Tuliskan gambaran ringkas tentang hasil akhir yang ingin dicapai..."></textarea>
+        </div>
+
+        <!-- Task Checklist Builder -->
+        <div class="form-group" style="margin-top: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <label style="margin: 0; font-weight: 700;">Daftar Tugas / Milestone Proyek:</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <button type="button" class="btn btn-emerald btn-sm" id="btn-ai-project-breakdown" onclick="GoalGettenApp.smartBreakdownProjectTasks()" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+                <span>✨ AI Breakdown Tugas</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="GoalGettenApp.addProjectTaskRow()" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">
+                <span>+ Tambah Baris</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="modal-project-tasks-list" class="project-modal-tasks-container">
+            <!-- Dynamic task rows injected here -->
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-project')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Proyek</button>
         </div>
       </form>
     </div>

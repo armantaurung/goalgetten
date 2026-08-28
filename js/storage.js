@@ -15,13 +15,66 @@ const STORAGE_KEYS = {
   LOCAL_ACCOUNTS: 'goalgetteng_local_accounts',
   XP: 'goalgetteng_xp',
   THEME: 'goalgetten_theme',
-  SORT_MODE: 'goalgetten_sort_mode'
+  SORT_MODE: 'goalgetten_sort_mode',
+  PROJECTS: 'goalgetteng_projects'
 };
 
 const DEFAULT_PIN = 'ARMANT';
 const DEFAULT_AI_MODEL = 'gemini-1.5-flash';
 const DEFAULT_SUPABASE_URL = 'https://lzrcvtzigehjltbtgrdi.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6cmN2dHppZ2Voamx0YnRncmRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc3MzQ5MTAsImV4cCI6MjEwMzMxMDkxMH0.OoRVz3p1kuDYtCzhOoUpod-4f_3hy2A-Mfn_UJ_YnQQ';
+
+const DEFAULT_PROJECTS = [
+  {
+    id: 'proj-1',
+    title: 'Peluncuran Website Portofolio & Brand Digital',
+    category: 'Intellectual / Career',
+    priority: 'high',
+    deadline: '2026-09-30',
+    description: 'Membangun kehadiran digital profesional dengan portofolio web modern dan showcase proyek AI.',
+    color: '#6366f1',
+    createdAt: '2026-08-20',
+    tasks: [
+      { id: 't-101', title: 'Riset tren UI/UX dan pilih palet warna visual', done: true },
+      { id: 't-102', title: 'Susun daftar 3 studi kasus proyek terbaik', done: true },
+      { id: 't-103', title: 'Kembangkan halaman beranda dan navigasi interaktif', done: true },
+      { id: 't-104', title: 'Uji responsivitas di smartphone dan optimasi SEO', done: false },
+      { id: 't-105', title: 'Deploy ke domain kustom dan publikasikan di LinkedIn', done: false }
+    ]
+  },
+  {
+    id: 'proj-2',
+    title: 'Transformasi Gaya Hidup & Kebugaran 90 Hari',
+    category: 'Physical / Health',
+    priority: 'medium',
+    deadline: '2026-10-31',
+    description: 'Program peningkatan stamina, perbaikan pola makan seimbang, dan konsistensi latihan aerobik.',
+    color: '#10b981',
+    createdAt: '2026-08-15',
+    tasks: [
+      { id: 't-201', title: 'Pemeriksaan kesehatan dasar dan ukur komposisi tubuh awal', done: true },
+      { id: 't-202', title: 'Buat meal plan mingguan bebas gula tambahan', done: true },
+      { id: 't-203', title: 'Selesaikan 12 sesi latihan kekuatan dan lari bertahap', done: false },
+      { id: 't-204', title: 'Evaluasi progres lingkar pinggang dan stamina akhir bulan', done: false }
+    ]
+  },
+  {
+    id: 'proj-3',
+    title: 'Penataan Finansial & Dana Darurat 6 Bulan',
+    category: 'Keuangan',
+    priority: 'high',
+    deadline: '2026-12-15',
+    description: 'Membangun pos tabungan dana darurat likuid dan mengalokasikan investasi portofolio berkala.',
+    color: '#06b6d4',
+    createdAt: '2026-08-10',
+    tasks: [
+      { id: 't-301', title: 'Audit seluruh pengeluaran bulanan dan pangkas langganan tak terpakai', done: true },
+      { id: 't-302', title: 'Buka rekening tabungan terpisah untuk dana darurat', done: true },
+      { id: 't-303', title: 'Akumulasi dana darurat mencapai 50% dari target', done: true },
+      { id: 't-304', title: 'Capai target penuh dana darurat 6 bulan pengeluaran', done: false }
+    ]
+  }
+];
 
 const DEFAULT_HABITS = [
   {
@@ -418,9 +471,34 @@ class StorageManager {
     localStorage.setItem(STORAGE_KEYS.SORT_MODE, mode || 'time-24h');
   }
 
+  static getProjects() {
+    try {
+      const key = this.getUserStorageKey(STORAGE_KEYS.PROJECTS);
+      const data = localStorage.getItem(key);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error reading projects storage:', e);
+    }
+    // Return sample projects on initial load
+    return DEFAULT_PROJECTS;
+  }
+
+  static saveProjects(projects) {
+    try {
+      const key = this.getUserStorageKey(STORAGE_KEYS.PROJECTS);
+      localStorage.setItem(key, JSON.stringify(projects || []));
+    } catch (e) {
+      console.error('Error saving projects storage:', e);
+    }
+  }
+
   static resetToDefault() {
     this.saveHabits(DEFAULT_HABITS);
     this.saveGoals(DEFAULT_GOALS);
+    this.saveProjects(DEFAULT_PROJECTS);
     this.setPIN(DEFAULT_PIN);
     this.saveXP(0);
   }
@@ -503,6 +581,7 @@ class StorageManager {
     const data = {
       habits: this.getHabits(),
       goals: this.getGoals(),
+      projects: this.getProjects(),
       pin: this.getPIN(),
       exportedAt: new Date().toISOString()
     };
@@ -520,6 +599,7 @@ class StorageManager {
       const data = JSON.parse(jsonStr);
       if (data.habits) this.saveHabits(data.habits);
       if (data.goals) this.saveGoals(data.goals);
+      if (data.projects) this.saveProjects(data.projects);
       if (data.pin) this.setPIN(data.pin);
       return true;
     } catch (e) {
