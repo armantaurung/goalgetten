@@ -277,6 +277,22 @@ class GoalGettenApp {
     this.renderFokusHariIniListOnly();
   }
 
+  static getPeriodKey(timeStr) {
+    const time = timeStr || '08:00';
+    const [hStr] = time.split(':');
+    const hour = parseInt(hStr, 10) || 0;
+
+    if (hour >= 4 && hour < 11) {
+      return 'pagi';
+    } else if (hour >= 11 && hour < 15) {
+      return 'siang';
+    } else if (hour >= 15 && hour < 18) {
+      return 'sore';
+    } else {
+      return 'malam';
+    }
+  }
+
   static getTimeDetails(timeStr, isDone = false) {
     const time = timeStr || '08:00';
     const [hStr, mStr] = time.split(':');
@@ -470,6 +486,63 @@ class GoalGettenApp {
     this.renderSideMilestones();
   }
 
+  static renderHabitCardHtml(h) {
+    const isDone = Boolean(h.history && h.history[this.todayIso]);
+    const catColor = h.color || '#8b5cf6';
+    const timeInfo = this.getTimeDetails(h.time, isDone);
+
+    return `
+      <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};" data-habit-id="${h.id}">
+        <div class="habit-row-top">
+          <div class="habit-main-info">
+            <div class="habit-drag-handle" title="Tarik / geser untuk mengatur urutan habit (Drag & Drop)" aria-label="Geser urutan">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="8" cy="5" r="2.2"/>
+                <circle cx="16" cy="5" r="2.2"/>
+                <circle cx="8" cy="12" r="2.2"/>
+                <circle cx="16" cy="12" r="2.2"/>
+                <circle cx="8" cy="19" r="2.2"/>
+                <circle cx="16" cy="19" r="2.2"/>
+              </svg>
+            </div>
+            <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
+              ${isDone ? '✓' : ''}
+            </div>
+            <div class="habit-title-area">
+              <div class="habit-title-row">
+                <h4>${h.title}</h4>
+                <span class="tag-pill tag-24h-time ${timeInfo.statusClass}" title="Jadwal 24 jam: ${timeInfo.formattedTime} WIB (${timeInfo.statusText})">
+                  ${timeInfo.periodEmoji} ${timeInfo.formattedTime} • ${timeInfo.period}
+                </span>
+              </div>
+              <div class="habit-meta-tags">
+                <span class="tag-pill tag-time-status ${timeInfo.statusClass}">${timeInfo.statusBadge}</span>
+                <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
+                <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
+                <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="habit-right-actions">
+            <button class="btn-focus-timer-start" onclick="GoalGettenApp.openFocusTimer('${h.id}')" title="Mulai Focus Pomodoro Timer untuk habit ini">
+              <span>▶️ Mulai</span>
+            </button>
+            <span class="streak-tag">🔥 ${h.streak || 0} d</span>
+            <button class="icon-btn" title="Edit Habit" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">✏️</button>
+            <button class="icon-btn" title="Hapus Habit" onclick="GoalGettenApp.deleteHabit('${h.id}')">🗑️</button>
+          </div>
+        </div>
+
+        ${h.plan ? `
+          <div class="implementation-plan-box">
+            <span class="label">Rencana Implementasi:</span> ${h.plan}
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
   static renderFokusHariIniListOnly() {
     const list = document.getElementById('fokus-habits-list');
     if (!list) return;
@@ -489,63 +562,98 @@ class GoalGettenApp {
       return;
     }
 
-    list.innerHTML = filteredHabits.map(h => {
-      const isDone = Boolean(h.history && h.history[this.todayIso]);
-      const catColor = h.color || '#8b5cf6';
-      const timeInfo = this.getTimeDetails(h.time, isDone);
+    const PERIODS = [
+      {
+        key: 'pagi',
+        title: 'Rutinitas Pagi',
+        emoji: '🌅',
+        range: '04:00 - 11:00 WIB',
+        color: '#f59e0b',
+        bg: 'rgba(245, 158, 11, 0.06)',
+        bgHover: 'rgba(245, 158, 11, 0.12)',
+        border: 'rgba(245, 158, 11, 0.25)'
+      },
+      {
+        key: 'siang',
+        title: 'Rutinitas Siang',
+        emoji: '☀️',
+        range: '11:00 - 15:00 WIB',
+        color: '#06b6d4',
+        bg: 'rgba(6, 182, 212, 0.06)',
+        bgHover: 'rgba(6, 182, 212, 0.12)',
+        border: 'rgba(6, 182, 212, 0.25)'
+      },
+      {
+        key: 'sore',
+        title: 'Rutinitas Sore',
+        emoji: '🌇',
+        range: '15:00 - 18:00 WIB',
+        color: '#f43f5e',
+        bg: 'rgba(244, 63, 94, 0.06)',
+        bgHover: 'rgba(244, 63, 94, 0.12)',
+        border: 'rgba(244, 63, 94, 0.25)'
+      },
+      {
+        key: 'malam',
+        title: 'Rutinitas Malam',
+        emoji: '🌙',
+        range: '18:00 - 04:00 WIB',
+        color: '#8b5cf6',
+        bg: 'rgba(139, 92, 246, 0.06)',
+        bgHover: 'rgba(139, 92, 246, 0.12)',
+        border: 'rgba(139, 92, 246, 0.25)'
+      }
+    ];
 
-      return `
-        <div class="habit-card-v2 ${isDone ? 'completed' : ''}" style="--habit-color: ${catColor};" data-habit-id="${h.id}">
-          <div class="habit-row-top">
-            <div class="habit-main-info">
-              <div class="habit-drag-handle" title="Tarik / geser untuk mengatur urutan habit (Drag & Drop)" aria-label="Geser urutan">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                  <circle cx="8" cy="5" r="2.2"/>
-                  <circle cx="16" cy="5" r="2.2"/>
-                  <circle cx="8" cy="12" r="2.2"/>
-                  <circle cx="16" cy="12" r="2.2"/>
-                  <circle cx="8" cy="19" r="2.2"/>
-                  <circle cx="16" cy="19" r="2.2"/>
-                </svg>
-              </div>
-              <div class="custom-checkbox" onclick="GoalGettenApp.toggleHabit('${h.id}', '${this.todayIso}')">
-                ${isDone ? '✓' : ''}
-              </div>
-              <div class="habit-title-area">
-                <div class="habit-title-row">
-                  <h4>${h.title}</h4>
-                  <span class="tag-pill tag-24h-time ${timeInfo.statusClass}" title="Jadwal 24 jam: ${timeInfo.formattedTime} WIB (${timeInfo.statusText})">
-                    ${timeInfo.periodEmoji} ${timeInfo.formattedTime} • ${timeInfo.period}
-                  </span>
-                </div>
-                <div class="habit-meta-tags">
-                  <span class="tag-pill tag-time-status ${timeInfo.statusClass}">${timeInfo.statusBadge}</span>
-                  <span class="tag-pill tag-duration">⏱️ ${h.duration || 15} Menit</span>
-                  <span class="tag-pill tag-category" style="--cat-bg: ${catColor}20; --cat-color: ${catColor};">${h.category}</span>
-                  <span class="tag-goal">🎯 ${h.goalTitle || 'Tujuan Utama'}</span>
-                </div>
+    const groupedHabits = {
+      pagi: [],
+      siang: [],
+      sore: [],
+      malam: []
+    };
+
+    filteredHabits.forEach(h => {
+      const periodKey = this.getPeriodKey(h.time);
+      if (groupedHabits[periodKey]) {
+        groupedHabits[periodKey].push(h);
+      } else {
+        groupedHabits.pagi.push(h);
+      }
+    });
+
+    let html = '';
+
+    PERIODS.forEach(p => {
+      const items = groupedHabits[p.key];
+      if (!items || items.length === 0) return;
+
+      const completedCount = items.filter(h => h.history && h.history[this.todayIso]).length;
+      const isAllDone = completedCount === items.length && items.length > 0;
+
+      html += `
+        <div class="time-period-group-section" data-period="${p.key}">
+          <div class="time-period-header" style="--period-color: ${p.color}; --period-bg: ${p.bg}; --period-bg-hover: ${p.bgHover}; --period-border: ${p.border};">
+            <div class="time-period-header-left">
+              <div class="time-period-icon-badge">${p.emoji}</div>
+              <div>
+                <h4 class="time-period-title">${p.title}</h4>
+                <span class="time-period-range">${p.range}</span>
               </div>
             </div>
-
-            <div class="habit-right-actions">
-              <button class="btn-focus-timer-start" onclick="GoalGettenApp.openFocusTimer('${h.id}')" title="Mulai Focus Pomodoro Timer untuk habit ini">
-                <span>▶️ Mulai</span>
-              </button>
-              <span class="streak-tag">🔥 ${h.streak || 0} d</span>
-              <button class="icon-btn" title="Edit Habit" onclick="GoalGettenApp.openEditHabitModal('${h.id}')">✏️</button>
-              <button class="icon-btn" title="Hapus Habit" onclick="GoalGettenApp.deleteHabit('${h.id}')">🗑️</button>
+            <div class="time-period-header-right">
+              <span class="time-period-stat-pill ${isAllDone ? 'all-done' : ''}">
+                ${completedCount} / ${items.length} Selesai ${isAllDone ? '✓' : ''}
+              </span>
             </div>
           </div>
-
-          ${h.plan ? `
-            <div class="implementation-plan-box">
-              <span class="label">Rencana Implementasi:</span> ${h.plan}
-            </div>
-          ` : ''}
+          <div class="time-period-cards-list">
+            ${items.map(h => this.renderHabitCardHtml(h)).join('')}
+          </div>
         </div>
       `;
-    }).join('');
+    });
 
+    list.innerHTML = html;
     this.initHabitDragAndDrop('#fokus-habits-list');
   }
 

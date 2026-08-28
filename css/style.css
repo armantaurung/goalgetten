@@ -4710,6 +4710,101 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   }
 }
 
+/* ==========================================================================
+   Time Period Grouping (Pagi, Siang, Sore, Malam) 🌅☀️🌇🌙
+   ========================================================================== */
+.time-period-group-section {
+  margin-bottom: 1.5rem;
+}
+
+.time-period-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--period-bg, rgba(30, 41, 59, 0.45));
+  border: 1px solid var(--period-border, rgba(255, 255, 255, 0.08));
+  border-left: 4px solid var(--period-color, #8b5cf6);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  transition: all 0.25s ease;
+}
+
+.time-period-header:hover {
+  background: var(--period-bg-hover, rgba(30, 41, 59, 0.65));
+  border-color: var(--period-color, #8b5cf6);
+}
+
+.time-period-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.time-period-icon-badge {
+  font-size: 1.35rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.time-period-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.time-period-range {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.time-period-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-period-stat-pill {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.time-period-stat-pill.all-done {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.time-period-cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 
 
 
