@@ -4442,6 +4442,274 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   color: #0f172a;
 }
 
+/* ==========================================================================
+   16. Universal Responsive System: Desktop, Tablet & Smartphone
+   ========================================================================== */
+
+/* 1. Large Screens & Desktop (min-width: 1025px) */
+@media (min-width: 1025px) {
+  .sidebar {
+    width: var(--sidebar-width);
+    transform: translateX(0) !important;
+  }
+  .main-content {
+    margin-left: var(--sidebar-width);
+    padding: 2rem 2.5rem;
+  }
+  .projects-grid-layout {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  }
+}
+
+/* 2. Tablets (Portrait & Landscape: 769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 260px;
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 1.75rem 2rem;
+  }
+  .mobile-toggle {
+    display: inline-flex !important;
+  }
+  .projects-grid-layout {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .goals-two-col {
+    grid-template-columns: 1fr;
+  }
+  .focus-today-grid {
+    grid-template-columns: 1fr;
+  }
+  .modal-dialog {
+    width: 90%;
+    max-width: 640px;
+  }
+}
+
+/* 3. Smartphones & Small Tablets (max-width: 768px) */
+@media (max-width: 768px) {
+  .sidebar {
+    width: min(300px, 85vw);
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.6);
+  }
+  .main-content {
+    margin-left: 0;
+    padding: 1rem 0.85rem 5rem 0.85rem;
+    width: 100%;
+  }
+  .mobile-toggle {
+    display: inline-flex !important;
+  }
+
+  /* Top Navbar & Header on Mobile */
+  .top-nav-bar {
+    margin-bottom: 1.25rem;
+    gap: 0.75rem;
+  }
+  .action-buttons-group {
+    gap: 0.4rem;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    -webkit-overflow-scrolling: touch;
+  }
+  .action-buttons-group .btn {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.78rem;
+    flex-shrink: 0;
+  }
+
+  /* Summary 2x2 Metric Grid on Mobile */
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+  .stat-box {
+    padding: 0.75rem 0.65rem !important;
+    gap: 0.6rem !important;
+    border-radius: var(--radius-md) !important;
+  }
+  .stat-icon {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.15rem !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  .stat-info h4 {
+    font-size: 0.68rem !important;
+    line-height: 1.2 !important;
+  }
+  .stat-info .stat-value {
+    font-size: 1.05rem !important;
+    margin-top: 0.15rem !important;
+  }
+
+  /* Filter Toolbar on Mobile */
+  .habit-filter-toolbar {
+    padding: 0.65rem 0.75rem;
+    gap: 0.65rem;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .filter-search-box {
+    width: 100%;
+    min-width: unset;
+  }
+  .filter-pills-row {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+  }
+  .filter-status-group {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+  .filter-pill-btn {
+    flex: 1;
+    text-align: center;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.72rem;
+  }
+  .filter-category-select-wrap {
+    flex: 1;
+    min-width: 130px;
+  }
+  .filter-category-select {
+    width: 100%;
+    font-size: 0.72rem;
+    padding: 0.4rem 0.65rem;
+  }
+
+  /* Project Grid & Cards on Mobile */
+  .projects-grid-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  .project-card-v2 {
+    padding: 1rem;
+    border-radius: var(--radius-md);
+  }
+  .project-title {
+    font-size: 1.02rem;
+  }
+  .project-desc {
+    font-size: 0.8rem;
+  }
+
+  /* Project Tasks List & Date Pills on Mobile */
+  .project-task-item {
+    padding: 0.45rem 0.55rem;
+  }
+  .project-task-title {
+    font-size: 0.8rem;
+  }
+  .project-task-date-pill {
+    font-size: 0.65rem;
+    padding: 0.08rem 0.38rem;
+  }
+
+  /* Quick Add Task Form on Mobile */
+  .project-quick-add-task {
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+  .quick-task-input {
+    width: 100%;
+  }
+  .project-quick-add-task .quick-task-date-input {
+    width: 100%;
+  }
+  .project-quick-add-task .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+
+  /* Modal Form Dialogs on Mobile */
+  .modal-dialog {
+    width: 95% !important;
+    max-width: 95vw !important;
+    margin: 1rem auto !important;
+    padding: 1.25rem 1rem !important;
+    max-height: 90vh !important;
+    border-radius: var(--radius-lg) !important;
+  }
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+  .project-modal-task-row {
+    flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-glass);
+    gap: 0.4rem;
+  }
+  .task-row-input {
+    flex: 1;
+    min-width: 160px;
+  }
+  .task-row-date {
+    width: 100% !important;
+  }
+
+  /* Floating Action Button (FAB) on Mobile */
+  .ai-floating-fab {
+    bottom: 16px;
+    right: 16px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+  }
+
+  /* Plant / Growth Banner on Mobile */
+  .plant-growth-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    gap: 1rem;
+  }
+  .plant-details h3 {
+    justify-content: center;
+  }
+}
+
+/* 4. Extra Small Phones (max-width: 380px) */
+@media (max-width: 380px) {
+  .main-content {
+    padding: 0.75rem 0.5rem 4rem 0.5rem;
+  }
+  .summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .project-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+
 
 
 
