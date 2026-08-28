@@ -848,6 +848,10 @@ class GoalGettenApp {
     task.done = !task.done;
     StorageManager.saveProjects(projects);
 
+    if (window.AuthManager) {
+      AuthManager.pushProjectSave(project);
+    }
+
     if (task.done) {
       if (window.GamificationManager) {
         GamificationManager.addXP(20);
@@ -891,6 +895,10 @@ class GoalGettenApp {
     });
 
     StorageManager.saveProjects(projects);
+    if (window.AuthManager) {
+      AuthManager.pushProjectSave(project);
+    }
+
     input.value = '';
     this.renderProjectsTab();
     this.showToast('✅ Tugas baru ditambahkan!', 'success', 1800);
@@ -903,6 +911,11 @@ class GoalGettenApp {
 
     project.tasks = project.tasks.filter(t => t.id !== taskId);
     StorageManager.saveProjects(projects);
+
+    if (window.AuthManager) {
+      AuthManager.pushProjectSave(project);
+    }
+
     this.renderProjectsTab();
     this.showToast('🗑️ Tugas dihapus', 'info', 1500);
   }
@@ -1108,6 +1121,7 @@ class GoalGettenApp {
     });
 
     const projects = StorageManager.getProjects();
+    let savedProject = null;
 
     if (id) {
       // Edit existing
@@ -1120,6 +1134,7 @@ class GoalGettenApp {
         project.description = description;
         project.tasks = tasks;
         project.color = catColors[category] || project.color || '#6366f1';
+        savedProject = project;
       }
       this.showToast(`✨ Proyek "${title}" berhasil diperbarui!`, 'success');
     } else {
@@ -1136,10 +1151,15 @@ class GoalGettenApp {
         tasks: tasks
       };
       projects.unshift(newProject);
+      savedProject = newProject;
       this.showToast(`🎉 Proyek "${title}" berhasil dibuat!`, 'success');
     }
 
     StorageManager.saveProjects(projects);
+    if (window.AuthManager && savedProject) {
+      AuthManager.pushProjectSave(savedProject);
+    }
+
     this.closeModal('modal-project');
     this.renderProjectsTab();
   }
@@ -1152,6 +1172,9 @@ class GoalGettenApp {
     this.showConfirm(`Hapus proyek "${project.title}" beserta seluruh tugasnya?`, () => {
       const updated = projects.filter(p => p.id !== projectId);
       StorageManager.saveProjects(updated);
+      if (window.AuthManager) {
+        AuthManager.pushProjectDelete(projectId);
+      }
       this.renderProjectsTab();
       this.showToast(`🗑️ Proyek "${project.title}" telah dihapus`, 'info');
     });

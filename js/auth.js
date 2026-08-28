@@ -348,9 +348,10 @@ class AuthManager {
   static async offerLocalDataMigration() {
     const localHabits = StorageManager.getHabits();
     const localGoals = StorageManager.getGoals();
+    const localProjects = StorageManager.getProjects();
 
-    if (localHabits.length > 0 || localGoals.length > 0) {
-      GoalGettenApp.showConfirm('Unggah data Habit & Goal lokal Anda ke akun cloud baru ini agar tersinkron di semua perangkat?', async () => {
+    if (localHabits.length > 0 || localGoals.length > 0 || localProjects.length > 0) {
+      GoalGettenApp.showConfirm('Unggah data Habit, Goal, & Proyek lokal Anda ke akun cloud ini agar tersinkron di semua perangkat?', async () => {
         await this.syncLocalToCloud();
       });
     }
@@ -365,6 +366,7 @@ class AuthManager {
       const userId = this.currentUser.id;
       const habits = StorageManager.getHabits();
       const goals = StorageManager.getGoals();
+      const projects = StorageManager.getProjects();
 
       // 1. Sync Goals
       for (const g of goals) {
@@ -409,7 +411,22 @@ class AuthManager {
         }
       }
 
-      this.showSyncToast('✅ Data berhasil tersinkronisasi ke Cloud!');
+      // 3. Sync Projects & Tasks
+      for (const p of projects) {
+        await this.client.from('projects').upsert({
+          id: p.id,
+          user_id: userId,
+          title: p.title,
+          category: p.category || 'Intellectual / Career',
+          priority: p.priority || 'medium',
+          deadline: p.deadline || null,
+          description: p.description || '',
+          color: p.color || '#6366f1',
+          tasks: p.tasks || []
+        });
+      }
+
+      this.showSyncToast('✅ Seluruh data & proyek berhasil tersinkronisasi ke Cloud!');
       if (window.SoundEffects) SoundEffects.playDing();
     } catch (err) {
       console.error('Sync error:', err);
@@ -437,6 +454,11 @@ class AuthManager {
 
       const { data: cloudLogs, error: lErr } = await this.client
         .from('habit_logs')
+        .select('*')
+        .eq('user_id', userId);
+
+      const { data: cloudProjects, error: pErr } = await this.client
+        .from('projects')
         .select('*')
         .eq('user_id', userId);
 
@@ -476,6 +498,22 @@ class AuthManager {
         }));
 
         StorageManager.saveHabits(formattedHabits);
+      }
+
+      if (!pErr && cloudProjects && cloudProjects.length > 0) {
+        const formattedProjects = cloudProjects.map(p => ({
+          id: p.id,
+          title: p.title,
+          category: p.category || 'Intellectual / Career',
+          priority: p.priority || 'medium',
+          deadline: p.deadline || '',
+          description: p.description || '',
+          color: p.color || '#6366f1',
+          createdAt: p.created_at ? p.created_at.slice(0, 10) : undefined,
+          tasks: p.tasks || []
+        }));
+
+        StorageManager.saveProjects(formattedProjects);
       }
 
       this.showSyncToast('✅ Data Cloud Siap & Tersinkron!');
@@ -562,6 +600,34 @@ class AuthManager {
       await this.client.from('goals').delete().match({ id: goalId, user_id: this.currentUser.id });
     } catch (e) {
       console.warn('Background delete goal error:', e);
+    }
+  }
+
+  static async pushProjectSave(project) {
+    if (!this.client || !this.currentUser) return;
+    try {
+      await this.client.from('projects').upsert({
+        id: project.id,
+        user_id: this.currentUser.id,
+        title: project.title,
+        category: project.category || 'Intellectual / Career',
+        priority: project.priority || 'medium',
+        deadline: project.deadline || null,
+        description: project.description || '',
+        color: project.color || '#6366f1',
+        tasks: project.tasks || []
+      });
+    } catch (e) {
+      console.warn('Background sync project error:', e);
+    }
+  }
+
+  static async pushProjectDelete(projectId) {
+    if (!this.client || !this.currentUser) return;
+    try {
+      await this.client.from('projects').delete().match({ id: projectId, user_id: this.currentUser.id });
+    } catch (e) {
+      console.warn('Background delete project error:', e);
     }
   }
 

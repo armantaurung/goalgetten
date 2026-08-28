@@ -71,6 +71,24 @@ CREATE TABLE IF NOT EXISTS public.habit_logs (
   UNIQUE(user_id, habit_id, date)
 );
 
+-- ------------------------------------------------------------------------------
+-- 5. Table: public.projects
+-- Stores project planning, priorities, deadlines, categories, and tasks checklist
+-- ------------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.projects (
+  id TEXT PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT DEFAULT 'Intellectual / Career',
+  priority TEXT DEFAULT 'medium',
+  deadline DATE,
+  description TEXT DEFAULT '',
+  color TEXT DEFAULT '#6366f1',
+  tasks JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ==============================================================================
 -- Row Level Security (RLS) Policies
 -- Ensures complete privacy & isolation between different users
@@ -80,6 +98,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.habits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.habit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
 
 -- Policies for public.profiles
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
@@ -102,6 +121,10 @@ CREATE POLICY "Users can manage own habits" ON public.habits FOR ALL USING (auth
 -- Policies for public.habit_logs
 DROP POLICY IF EXISTS "Users can manage own habit logs" ON public.habit_logs;
 CREATE POLICY "Users can manage own habit logs" ON public.habit_logs FOR ALL USING (auth.uid() = user_id);
+
+-- Policies for public.projects
+DROP POLICY IF EXISTS "Users can manage own projects" ON public.projects;
+CREATE POLICY "Users can manage own projects" ON public.projects FOR ALL USING (auth.uid() = user_id);
 
 -- ==============================================================================
 -- Automatic Trigger for New User Registration
