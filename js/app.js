@@ -282,7 +282,7 @@ class GoalGettenApp {
     const [hStr] = time.split(':');
     const hour = parseInt(hStr, 10) || 0;
 
-    if (hour >= 4 && hour < 11) {
+    if (hour >= 3 && hour < 11) {
       return 'pagi';
     } else if (hour >= 11 && hour < 15) {
       return 'siang';
@@ -567,7 +567,7 @@ class GoalGettenApp {
         key: 'pagi',
         title: 'Rutinitas Pagi',
         emoji: '🌅',
-        range: '04:00 - 11:00 WIB',
+        range: '03:00 - 11:00 WIB',
         color: '#f59e0b',
         bg: 'rgba(245, 158, 11, 0.06)',
         bgHover: 'rgba(245, 158, 11, 0.12)',
@@ -597,7 +597,7 @@ class GoalGettenApp {
         key: 'malam',
         title: 'Rutinitas Malam',
         emoji: '🌙',
-        range: '18:00 - 04:00 WIB',
+        range: '18:00 - 03:00 WIB',
         color: '#8b5cf6',
         bg: 'rgba(139, 92, 246, 0.06)',
         bgHover: 'rgba(139, 92, 246, 0.12)',
