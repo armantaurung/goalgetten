@@ -4159,10 +4159,15 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
 .project-tasks-list {
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
-  max-height: 240px;
-  overflow-y: auto;
-  padding-right: 0.25rem;
+  gap: 0.5rem;
+  max-height: none !important;
+  overflow: visible !important;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.project-tasks-list::-webkit-scrollbar {
+  display: none;
 }
 
 .project-no-tasks {
@@ -4175,13 +4180,13 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
 
 .project-task-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.65rem;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: var(--radius-md);
-  padding: 0.45rem 0.65rem;
+  padding: 0.6rem 0.75rem;
   transition: all 0.15s ease;
 }
 
@@ -4192,8 +4197,8 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
 
 .project-task-left {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  align-items: flex-start;
+  gap: 0.75rem;
   flex: 1;
   cursor: pointer;
   user-select: none;
@@ -4213,6 +4218,7 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   color: #fff;
   transition: all 0.15s ease;
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .project-task-checkbox.checked {
@@ -4221,9 +4227,10 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
 }
 
 .project-task-title {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
+  font-weight: 500;
   color: var(--text-primary);
-  line-height: 1.35;
+  line-height: 1.4;
   transition: color 0.15s ease;
 }
 
@@ -4236,11 +4243,13 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   cursor: pointer;
   padding: 0.2rem;
+  margin-top: 1px;
   opacity: 0.5;
   transition: opacity 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
 
 .project-task-delete-btn:hover {
@@ -4349,10 +4358,22 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   border-color: rgba(0, 0, 0, 0.1);
 }
 
+.project-progress-area .plant-progress-bar {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-full);
+}
+
+[data-theme="light"] .project-progress-area .plant-progress-bar {
+  background: #e2e8f0 !important;
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
 .project-task-text-group {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.3rem;
   flex: 1;
 }
 
@@ -4362,7 +4383,7 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   color: #a5b4fc;
   background: rgba(99, 102, 241, 0.12);
   border: 1px solid rgba(99, 102, 241, 0.25);
-  padding: 0.1rem 0.45rem;
+  padding: 0.12rem 0.45rem;
   border-radius: var(--radius-full);
   display: inline-flex;
   align-items: center;
