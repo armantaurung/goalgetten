@@ -60,7 +60,7 @@ class GoalGettenApp {
     this.lastRenderedDate = this.todayIso;
     this.bindDayChangeListeners();
     try {
-      this.currentSortMode = (window.StorageManager ? StorageManager.getSortMode() : null) || 'time-24h';
+      this.currentSortMode = (window.StorageManager ? StorageManager.getSortMode() : null) || 'custom';
       const sortSelect = document.getElementById('habit-sort-select');
       if (sortSelect) sortSelect.value = this.currentSortMode;
     } catch (e) { console.warn('Sort mode init error:', e); }
@@ -362,6 +362,12 @@ class GoalGettenApp {
     // Automatic 24-hour and custom sorting
     if (this.currentSortMode === 'time-24h') {
       result.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+    } else if (this.currentSortMode === 'custom') {
+      result.sort((a, b) => {
+        const ordA = a.order_index !== undefined && a.order_index !== null ? a.order_index : 9999;
+        const ordB = b.order_index !== undefined && b.order_index !== null ? b.order_index : 9999;
+        return ordA - ordB;
+      });
     } else if (this.currentSortMode === 'streak-desc') {
       result.sort((a, b) => (b.streak || 0) - (a.streak || 0));
     } else if (this.currentSortMode === 'duration-asc') {
@@ -3219,6 +3225,12 @@ class GoalGettenApp {
     const insertIdx = isBelow ? targetIdxInNewArray + 1 : targetIdxInNewArray;
 
     habits.splice(insertIdx, 0, moved);
+
+    // Persist order_index for all habits
+    habits.forEach((h, i) => {
+      h.order_index = i;
+    });
+
     StorageManager.saveHabits(habits);
 
     this.currentSortMode = 'custom';
@@ -3230,11 +3242,11 @@ class GoalGettenApp {
       SoundEffects.playPop();
     }
     if (window.GoalGettenApp && GoalGettenApp.showToast) {
-      GoalGettenApp.showToast('✨ Urutan habit berhasil diperbarui (Kustom)!', 'info', 1800);
+      GoalGettenApp.showToast('✨ Urutan habit berhasil dikunci & tersinkron!', 'info', 1800);
     }
 
-    if (window.AuthManager && AuthManager.currentUser && AuthManager.syncLocalToCloud) {
-      AuthManager.syncLocalToCloud().catch(() => {});
+    if (window.AuthManager && AuthManager.currentUser) {
+      AuthManager.pushHabitsReorder(habits).catch(() => {});
     }
 
     GoalGettenApp.renderAll();

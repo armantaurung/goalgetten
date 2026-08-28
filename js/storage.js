@@ -464,11 +464,11 @@ class StorageManager {
   }
 
   static getSortMode() {
-    return localStorage.getItem(STORAGE_KEYS.SORT_MODE) || 'time-24h';
+    return localStorage.getItem(STORAGE_KEYS.SORT_MODE) || 'custom';
   }
 
   static setSortMode(mode) {
-    localStorage.setItem(STORAGE_KEYS.SORT_MODE, mode || 'time-24h');
+    localStorage.setItem(STORAGE_KEYS.SORT_MODE, mode || 'custom');
   }
 
   static getProjects() {

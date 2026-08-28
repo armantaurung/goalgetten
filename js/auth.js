@@ -383,7 +383,9 @@ class AuthManager {
       }
 
       // 2. Sync Habits & Logs
-      for (const h of habits) {
+      for (let idx = 0; idx < habits.length; idx++) {
+        const h = habits[idx];
+        const ord = h.order_index !== undefined ? h.order_index : idx;
         await this.client.from('habits').upsert({
           id: h.id,
           user_id: userId,
@@ -394,7 +396,8 @@ class AuthManager {
           duration: h.duration || 15,
           plan: h.plan || '',
           color: h.color || '#8b5cf6',
-          streak: h.streak || 0
+          streak: h.streak || 0,
+          order_index: ord
         });
 
         if (h.history) {
@@ -484,7 +487,7 @@ class AuthManager {
           });
         }
 
-        const formattedHabits = cloudHabits.map(h => ({
+        const formattedHabits = cloudHabits.map((h, idx) => ({
           id: h.id,
           title: h.title,
           category: h.category,
@@ -494,8 +497,12 @@ class AuthManager {
           plan: h.plan,
           color: h.color,
           streak: h.streak || 0,
+          order_index: h.order_index !== undefined && h.order_index !== null ? h.order_index : idx,
           history: logsMap[h.id] || {}
         }));
+
+        // Sort by order_index
+        formattedHabits.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
 
         StorageManager.saveHabits(formattedHabits);
       }
@@ -559,10 +566,26 @@ class AuthManager {
         duration: habit.duration || 15,
         plan: habit.plan || '',
         color: habit.color || '#8b5cf6',
-        streak: habit.streak || 0
+        streak: habit.streak || 0,
+        order_index: habit.order_index !== undefined ? habit.order_index : 0
       });
     } catch (e) {
       console.warn('Background sync habit error:', e);
+    }
+  }
+
+  static async pushHabitsReorder(habits) {
+    if (!this.client || !this.currentUser) return;
+    try {
+      const userId = this.currentUser.id;
+      for (let i = 0; i < habits.length; i++) {
+        const h = habits[i];
+        await this.client.from('habits').update({
+          order_index: i
+        }).match({ id: h.id, user_id: userId });
+      }
+    } catch (e) {
+      console.warn('Background sync habit reorder error:', e);
     }
   }
 

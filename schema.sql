@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS public.habits (
   plan TEXT DEFAULT '',
   color TEXT DEFAULT '#8b5cf6',
   streak INTEGER DEFAULT 0,
+  order_index INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
