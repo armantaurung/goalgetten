@@ -775,22 +775,35 @@ class GoalGettenApp {
 
             <div class="project-tasks-list">
               ${tasks.length === 0 ? '<div class="project-no-tasks">Belum ada tugas. Tambahkan tugas pertama di bawah!</div>' : ''}
-              ${tasks.map(t => `
-                <div class="project-task-item ${t.done ? 'done' : ''}">
-                  <div class="project-task-left" onclick="GoalGettenApp.toggleProjectTask('${p.id}', '${t.id}')">
-                    <div class="project-task-checkbox ${t.done ? 'checked' : ''}">
-                      ${t.done ? '✓' : ''}
+              ${tasks.map(t => {
+                const isOverdue = t.dueDate && !t.done && t.dueDate < GoalGettenApp.todayIso;
+                const isDueToday = t.dueDate && !t.done && t.dueDate === GoalGettenApp.todayIso;
+
+                return `
+                  <div class="project-task-item ${t.done ? 'done' : ''}">
+                    <div class="project-task-left" onclick="GoalGettenApp.toggleProjectTask('${p.id}', '${t.id}')">
+                      <div class="project-task-checkbox ${t.done ? 'checked' : ''}">
+                        ${t.done ? '✓' : ''}
+                      </div>
+                      <div class="project-task-text-group">
+                        <span class="project-task-title">${t.title}</span>
+                        ${t.dueDate ? `
+                          <span class="project-task-date-pill ${isOverdue ? 'overdue' : (isDueToday ? 'today' : '')}" title="Target Tanggal: ${GoalGettenApp.formatIndonesianDate(t.dueDate)}">
+                            📅 ${GoalGettenApp.formatIndonesianShort(t.dueDate)} ${isOverdue ? '⚠️ Lewat' : (isDueToday ? '🔥 Hari Ini' : '')}
+                          </span>
+                        ` : ''}
+                      </div>
                     </div>
-                    <span class="project-task-title">${t.title}</span>
+                    <button class="project-task-delete-btn" title="Hapus Tugas" onclick="GoalGettenApp.deleteProjectTask('${p.id}', '${t.id}')">✕</button>
                   </div>
-                  <button class="project-task-delete-btn" title="Hapus Tugas" onclick="GoalGettenApp.deleteProjectTask('${p.id}', '${t.id}')">✕</button>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
 
             <!-- Quick Add Task Form -->
             <div class="project-quick-add-task">
-              <input type="text" class="quick-task-input" id="quick-task-input-${p.id}" placeholder="+ Tambah tugas baru..." onkeydown="if(event.key==='Enter'){event.preventDefault(); GoalGettenApp.quickAddTaskToProject('${p.id}');}">
+              <input type="text" class="quick-task-input" id="quick-task-input-${p.id}" placeholder="+ Tambah tugas..." onkeydown="if(event.key==='Enter'){event.preventDefault(); GoalGettenApp.quickAddTaskToProject('${p.id}');}">
+              <input type="date" class="quick-task-date-input" id="quick-task-date-${p.id}" title="Target tanggal tugas" value="${new Date().toISOString().slice(0, 10)}">
               <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.quickAddTaskToProject('${p.id}')">
                 <span>+ Tambah</span>
               </button>
@@ -859,9 +872,11 @@ class GoalGettenApp {
 
   static quickAddTaskToProject(projectId) {
     const input = document.getElementById(`quick-task-input-${projectId}`);
+    const dateInput = document.getElementById(`quick-task-date-${projectId}`);
     if (!input) return;
     const title = input.value.trim();
     if (!title) return;
+    const dueDate = dateInput ? dateInput.value : '';
 
     const projects = StorageManager.getProjects();
     const project = projects.find(p => p.id === projectId);
@@ -871,6 +886,7 @@ class GoalGettenApp {
     project.tasks.push({
       id: 't-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       title: title,
+      dueDate: dueDate,
       done: false
     });
 
@@ -904,12 +920,16 @@ class GoalGettenApp {
     d.setMonth(d.getMonth() + 1);
     document.getElementById('modal-project-deadline').value = d.toISOString().slice(0, 10);
 
+    const d1 = new Date(); d1.setDate(d1.getDate() + 2);
+    const d2 = new Date(); d2.setDate(d2.getDate() + 7);
+    const d3 = new Date(); d3.setDate(d3.getDate() + 14);
+
     const taskList = document.getElementById('modal-project-tasks-list');
     if (taskList) {
       taskList.innerHTML = '';
-      this.addProjectTaskRow('Riset & perencanaan awal');
-      this.addProjectTaskRow('Eksekusi pengerjaan tahap inti');
-      this.addProjectTaskRow('Review & penyelesaian akhir');
+      this.addProjectTaskRow('Riset & perencanaan awal', false, null, d1.toISOString().slice(0, 10));
+      this.addProjectTaskRow('Eksekusi pengerjaan tahap inti', false, null, d2.toISOString().slice(0, 10));
+      this.addProjectTaskRow('Review & penyelesaian akhir', false, null, d3.toISOString().slice(0, 10));
     }
 
     const modal = document.getElementById('modal-project');
@@ -936,10 +956,10 @@ class GoalGettenApp {
       taskList.innerHTML = '';
       const tasks = project.tasks || [];
       if (tasks.length === 0) {
-        this.addProjectTaskRow('');
+        this.addProjectTaskRow('', false, null, new Date().toISOString().slice(0, 10));
       } else {
         tasks.forEach(t => {
-          this.addProjectTaskRow(t.title, t.done, t.id);
+          this.addProjectTaskRow(t.title, t.done, t.id, t.dueDate || '');
         });
       }
     }
@@ -948,7 +968,7 @@ class GoalGettenApp {
     if (modal) modal.classList.add('active');
   }
 
-  static addProjectTaskRow(taskText = '', isDone = false, existingId = null) {
+  static addProjectTaskRow(taskText = '', isDone = false, existingId = null, dueDate = '') {
     const container = document.getElementById('modal-project-tasks-list');
     if (!container) return;
 
@@ -959,6 +979,7 @@ class GoalGettenApp {
     row.innerHTML = `
       <input type="checkbox" class="task-row-checkbox" ${isDone ? 'checked' : ''} title="Tandai selesai">
       <input type="text" class="form-control task-row-input" placeholder="Tuliskan nama tugas..." value="${taskText.replace(/"/g, '&quot;')}">
+      <input type="date" class="form-control task-row-date" value="${dueDate || ''}" title="Target tanggal tugas">
       <button type="button" class="icon-btn task-row-remove-btn" title="Hapus baris" onclick="this.closest('.project-modal-task-row').remove()">✕</button>
     `;
     container.appendChild(row);
@@ -968,6 +989,7 @@ class GoalGettenApp {
     const titleInput = document.getElementById('modal-project-title');
     const catSelect = document.getElementById('modal-project-category');
     const descArea = document.getElementById('modal-project-desc');
+    const deadlineInput = document.getElementById('modal-project-deadline');
     const btn = document.getElementById('btn-ai-project-breakdown');
 
     if (!titleInput || !titleInput.value.trim()) {
@@ -1012,11 +1034,19 @@ class GoalGettenApp {
         );
       }
 
+      const deadlineVal = deadlineInput ? deadlineInput.value : '';
+      const targetDeadline = deadlineVal ? new Date(deadlineVal) : new Date(Date.now() + 30 * 86400000);
+      const nowMs = Date.now();
+      const totalSpan = Math.max(86400000, targetDeadline.getTime() - nowMs);
+
       const taskList = document.getElementById('modal-project-tasks-list');
       if (taskList) {
         taskList.innerHTML = '';
-        generatedTasks.forEach(tText => {
-          GoalGettenApp.addProjectTaskRow(tText, false);
+        generatedTasks.forEach((tText, idx) => {
+          const stepFraction = (idx + 1) / generatedTasks.length;
+          const taskDateMs = nowMs + (totalSpan * stepFraction);
+          const taskDateIso = new Date(taskDateMs).toISOString().slice(0, 10);
+          GoalGettenApp.addProjectTaskRow(tText, false, null, taskDateIso);
         });
       }
 
@@ -1025,7 +1055,7 @@ class GoalGettenApp {
       }
 
       if (window.SoundEffects) SoundEffects.playDing();
-      GoalGettenApp.showToast(`✨ AI berhasil merancang ${generatedTasks.length} tugas untuk "${title}"!`, 'success');
+      GoalGettenApp.showToast(`✨ AI berhasil merancang ${generatedTasks.length} tugas beserta jadwalnya untuk "${title}"!`, 'success');
     } finally {
       if (btn) {
         btn.disabled = false;
@@ -1063,11 +1093,15 @@ class GoalGettenApp {
       const taskId = row.getAttribute('data-task-id') || ('t-' + Date.now() + '-' + Math.floor(Math.random() * 1000));
       const checkbox = row.querySelector('.task-row-checkbox');
       const input = row.querySelector('.task-row-input');
+      const dateInput = row.querySelector('.task-row-date');
       const taskTitle = input ? input.value.trim() : '';
+      const dueDate = dateInput ? dateInput.value : '';
+
       if (taskTitle) {
         tasks.push({
           id: taskId,
           title: taskTitle,
+          dueDate: dueDate,
           done: checkbox ? checkbox.checked : false
         });
       }

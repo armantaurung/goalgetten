@@ -4349,6 +4349,100 @@ body, .sidebar, .top-nav-bar, .modal-dialog, .habit-card-v2, .stat-box, .plant-g
   border-color: rgba(0, 0, 0, 0.1);
 }
 
+.project-task-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  flex: 1;
+}
+
+.project-task-date-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: fit-content;
+}
+
+.project-task-date-pill.today {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.project-task-date-pill.overdue {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.project-task-item.done .project-task-date-pill {
+  opacity: 0.6;
+  text-decoration: none !important;
+}
+
+.quick-task-date-input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  outline: none;
+  width: 125px;
+  flex-shrink: 0;
+}
+
+.quick-task-date-input:focus {
+  border-color: #6366f1;
+  color: var(--text-primary);
+}
+
+.task-row-date {
+  width: 140px !important;
+  flex-shrink: 0;
+  font-size: 0.78rem !important;
+  padding: 0.35rem 0.5rem !important;
+}
+
+/* Light Theme Adaptations for Task Dates */
+[data-theme="light"] .project-task-date-pill {
+  background: rgba(99, 102, 241, 0.08);
+  color: #4f46e5;
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="light"] .project-task-date-pill.today {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="light"] .project-task-date-pill.overdue {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+[data-theme="light"] .quick-task-date-input {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+[data-theme="light"] .task-row-date {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #0f172a;
+}
+
+
 
 
 

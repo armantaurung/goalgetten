@@ -35,11 +35,11 @@ const DEFAULT_PROJECTS = [
     color: '#6366f1',
     createdAt: '2026-08-20',
     tasks: [
-      { id: 't-101', title: 'Riset tren UI/UX dan pilih palet warna visual', done: true },
-      { id: 't-102', title: 'Susun daftar 3 studi kasus proyek terbaik', done: true },
-      { id: 't-103', title: 'Kembangkan halaman beranda dan navigasi interaktif', done: true },
-      { id: 't-104', title: 'Uji responsivitas di smartphone dan optimasi SEO', done: false },
-      { id: 't-105', title: 'Deploy ke domain kustom dan publikasikan di LinkedIn', done: false }
+      { id: 't-101', title: 'Riset tren UI/UX dan pilih palet warna visual', dueDate: '2026-08-24', done: true },
+      { id: 't-102', title: 'Susun daftar 3 studi kasus proyek terbaik', dueDate: '2026-08-27', done: true },
+      { id: 't-103', title: 'Kembangkan halaman beranda dan navigasi interaktif', dueDate: '2026-09-05', done: true },
+      { id: 't-104', title: 'Uji responsivitas di smartphone dan optimasi SEO', dueDate: '2026-09-18', done: false },
+      { id: 't-105', title: 'Deploy ke domain kustom dan publikasikan di LinkedIn', dueDate: '2026-09-30', done: false }
     ]
   },
   {
@@ -52,10 +52,10 @@ const DEFAULT_PROJECTS = [
     color: '#10b981',
     createdAt: '2026-08-15',
     tasks: [
-      { id: 't-201', title: 'Pemeriksaan kesehatan dasar dan ukur komposisi tubuh awal', done: true },
-      { id: 't-202', title: 'Buat meal plan mingguan bebas gula tambahan', done: true },
-      { id: 't-203', title: 'Selesaikan 12 sesi latihan kekuatan dan lari bertahap', done: false },
-      { id: 't-204', title: 'Evaluasi progres lingkar pinggang dan stamina akhir bulan', done: false }
+      { id: 't-201', title: 'Pemeriksaan kesehatan dasar dan ukur komposisi tubuh awal', dueDate: '2026-08-20', done: true },
+      { id: 't-202', title: 'Buat meal plan mingguan bebas gula tambahan', dueDate: '2026-08-31', done: true },
+      { id: 't-203', title: 'Selesaikan 12 sesi latihan kekuatan dan lari bertahap', dueDate: '2026-09-30', done: false },
+      { id: 't-204', title: 'Evaluasi progres lingkar pinggang dan stamina akhir bulan', dueDate: '2026-10-31', done: false }
     ]
   },
   {
@@ -68,10 +68,10 @@ const DEFAULT_PROJECTS = [
     color: '#06b6d4',
     createdAt: '2026-08-10',
     tasks: [
-      { id: 't-301', title: 'Audit seluruh pengeluaran bulanan dan pangkas langganan tak terpakai', done: true },
-      { id: 't-302', title: 'Buka rekening tabungan terpisah untuk dana darurat', done: true },
-      { id: 't-303', title: 'Akumulasi dana darurat mencapai 50% dari target', done: true },
-      { id: 't-304', title: 'Capai target penuh dana darurat 6 bulan pengeluaran', done: false }
+      { id: 't-301', title: 'Audit seluruh pengeluaran bulanan dan pangkas langganan tak terpakai', dueDate: '2026-08-25', done: true },
+      { id: 't-302', title: 'Buka rekening tabungan terpisah untuk dana darurat', dueDate: '2026-09-10', done: true },
+      { id: 't-303', title: 'Akumulasi dana darurat mencapai 50% dari target', dueDate: '2026-10-30', done: true },
+      { id: 't-304', title: 'Capai target penuh dana darurat 6 bulan pengeluaran', dueDate: '2026-12-15', done: false }
     ]
   }
 ];
