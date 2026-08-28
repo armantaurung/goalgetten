@@ -5,8 +5,20 @@
 
 class GoalGettenApp {
   static currentTab = 'fokus-hari-ini';
-  static todayIso = new Date().toISOString().slice(0, 10);
   static parsedMassHabits = [];
+  static lastRenderedDate = '';
+
+  static get todayIso() {
+    return this.getLocalDateIso(new Date());
+  }
+
+  static getLocalDateIso(dateObj = new Date()) {
+    const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
 
   static INDO_DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   static INDO_DAYS_SHORT = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -45,6 +57,8 @@ class GoalGettenApp {
   }
 
   static init() {
+    this.lastRenderedDate = this.todayIso;
+    this.bindDayChangeListeners();
     try {
       this.currentSortMode = (window.StorageManager ? StorageManager.getSortMode() : null) || 'time-24h';
       const sortSelect = document.getElementById('habit-sort-select');
@@ -62,6 +76,33 @@ class GoalGettenApp {
       if (window.AICoachManager) AICoachManager.init();
     } catch (e) { console.warn('AI Coach init error:', e); }
     try { this.renderAll(); } catch (e) { console.error('Render error:', e); }
+  }
+
+  static bindDayChangeListeners() {
+    // 1. Detect when smartphone/browser wakes up or user returns to tab
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        this.checkDayChangeAndRefresh();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      this.checkDayChangeAndRefresh();
+    });
+
+    // 2. Periodic background check every 30 seconds for midnight roll-over
+    setInterval(() => {
+      this.checkDayChangeAndRefresh();
+    }, 30000);
+  }
+
+  static checkDayChangeAndRefresh() {
+    const currentToday = this.todayIso;
+    if (this.lastRenderedDate && this.lastRenderedDate !== currentToday) {
+      console.log(`📅 Hari baru terdeteksi (${this.lastRenderedDate} -> ${currentToday}). Merender ulang habit...`);
+      this.lastRenderedDate = currentToday;
+      this.renderAll();
+    }
   }
 
   static bindNavigation() {
@@ -1197,7 +1238,7 @@ class GoalGettenApp {
       const d = new Date();
       d.setDate(today.getDate() - i);
       past7Days.push({
-        iso: d.toISOString().slice(0, 10),
+        iso: this.getLocalDateIso(d),
         dayName: dayNames[d.getDay()],
         dayNum: d.getDate()
       });
@@ -1656,7 +1697,7 @@ class GoalGettenApp {
     for (let i = 0; i < 7; i++) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = this.getLocalDateIso(d);
       habits.forEach(h => {
         if (h.history && h.history[iso]) completedPast7Days++;
       });
@@ -2077,7 +2118,7 @@ class GoalGettenApp {
     for (let i = 0; i < 365; i++) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = this.getLocalDateIso(d);
 
       if (habit.history && habit.history[iso]) {
         currentStreak++;
