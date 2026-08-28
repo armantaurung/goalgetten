@@ -39,6 +39,11 @@ class GoalGettenApp {
   }
 
   static init() {
+    try {
+      this.currentSortMode = (window.StorageManager ? StorageManager.getSortMode() : null) || 'time-24h';
+      const sortSelect = document.getElementById('habit-sort-select');
+      if (sortSelect) sortSelect.value = this.currentSortMode;
+    } catch (e) { console.warn('Sort mode init error:', e); }
     try { this.applyTheme(); } catch (e) { console.warn('Theme init error:', e); }
     try { this.bindNavigation(); } catch (e) { console.warn('Nav bind error:', e); }
     try { this.bindModals(); } catch (e) { console.warn('Modals bind error:', e); }
@@ -218,6 +223,7 @@ class GoalGettenApp {
 
   static setSortMode(mode) {
     this.currentSortMode = mode || 'time-24h';
+    if (window.StorageManager) StorageManager.setSortMode(this.currentSortMode);
     const select = document.getElementById('habit-sort-select');
     if (select) select.value = this.currentSortMode;
     this.renderFokusHariIniListOnly();
@@ -640,8 +646,10 @@ class GoalGettenApp {
       const catHabits = habits.filter(h => (h.category || '').toLowerCase() === cat.toLowerCase());
       if (catHabits.length === 0) return '';
 
-      // Auto-sort by 24h schedule
-      catHabits.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+      // Auto-sort by 24h schedule if active sort mode is time-24h
+      if (this.currentSortMode === 'time-24h') {
+        catHabits.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+      }
 
       const catColor = catHabits[0].color || '#8b5cf6';
 
@@ -1470,23 +1478,35 @@ class GoalGettenApp {
     if (!habit) return;
 
     if (!habit.history) habit.history = {};
-    habit.history[dateIso] = !habit.history[dateIso];
+    const isNowDone = !habit.history[dateIso];
+    habit.history[dateIso] = isNowDone;
 
     this.recalcStreak(habit);
 
     StorageManager.saveHabits(habits);
     if (window.AuthManager) {
-      AuthManager.pushHabitToggle(habitId, dateIso, habit.history[dateIso]);
+      AuthManager.pushHabitToggle(habitId, dateIso, isNowDone);
     }
-    this.renderAll();
 
-    if (habit.history[dateIso]) {
+    if (isNowDone) {
       if (window.GamificationManager) {
         GamificationManager.addXP(25);
       } else if (window.SoundEffects) {
         SoundEffects.playPop();
       }
     }
+
+    // Smooth transition if in 'pending' filter mode so cards below don't jump abruptly
+    const cardEl = document.querySelector(`.habit-card-v2[data-habit-id="${habitId}"]`);
+    if (this.currentTab === 'fokus-hari-ini' && this.currentStatusFilter === 'pending' && isNowDone && cardEl) {
+      cardEl.classList.add('completed', 'habit-fade-out');
+      setTimeout(() => {
+        this.renderAll();
+      }, 250);
+      return;
+    }
+
+    this.renderAll();
   }
 
   static recalcStreak(habit) {
@@ -2426,28 +2446,26 @@ class GoalGettenApp {
         const habitId = card.getAttribute('data-habit-id');
         const handle = card.querySelector('.habit-drag-handle');
 
-        // Desktop HTML5 Drag and Drop
-        card.setAttribute('draggable', 'true');
+        // Only allow HTML5 Drag when dragged specifically or safely on card
+        card.setAttribute('draggable', 'false');
+        if (handle) {
+          handle.setAttribute('draggable', 'true');
 
-        card.addEventListener('dragstart', (e) => {
-          // Do not start drag if user is clicking button, input or checkbox
-          if (e.target.closest('button') || e.target.closest('.custom-checkbox') || e.target.closest('input') || e.target.closest('select') || e.target.closest('a')) {
-            e.preventDefault();
-            return;
-          }
-          this.draggedHabitId = habitId;
-          card.classList.add('dragging');
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', habitId);
-        });
-
-        card.addEventListener('dragend', () => {
-          this.draggedHabitId = null;
-          card.classList.remove('dragging');
-          document.querySelectorAll('.habit-card-v2').forEach(c => {
-            c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+          handle.addEventListener('dragstart', (e) => {
+            this.draggedHabitId = habitId;
+            card.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', habitId);
           });
-        });
+
+          handle.addEventListener('dragend', () => {
+            this.draggedHabitId = null;
+            card.classList.remove('dragging');
+            document.querySelectorAll('.habit-card-v2').forEach(c => {
+              c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
+            });
+          });
+        }
 
         card.addEventListener('dragover', (e) => {
           e.preventDefault();
@@ -2465,8 +2483,10 @@ class GoalGettenApp {
           }
         });
 
-        card.addEventListener('dragleave', () => {
-          card.classList.remove('drag-over-top', 'drag-over-bottom');
+        card.addEventListener('dragleave', (e) => {
+          if (!card.contains(e.relatedTarget)) {
+            card.classList.remove('drag-over-top', 'drag-over-bottom');
+          }
         });
 
         card.addEventListener('drop', (e) => {
@@ -2482,21 +2502,43 @@ class GoalGettenApp {
           }
         });
 
-        // Mobile Touch Reorder Events on Drag Handle
+        // Mobile Touch Reorder Events on Drag Handle with Gesture Threshold
         if (handle) {
+          let touchStartY = 0;
+          let touchStartX = 0;
+          let isTouchDragging = false;
+          let touchHoldTimer = null;
+
           handle.addEventListener('touchstart', (e) => {
-            this.draggedHabitId = habitId;
-            card.classList.add('dragging');
-            if (navigator.vibrate) {
-              try { navigator.vibrate(25); } catch (err) {}
-            }
+            const touch = e.touches[0];
+            touchStartY = touch.clientY;
+            touchStartX = touch.clientX;
+            isTouchDragging = false;
+
+            touchHoldTimer = setTimeout(() => {
+              isTouchDragging = true;
+              this.draggedHabitId = habitId;
+              card.classList.add('dragging');
+              if (navigator.vibrate) {
+                try { navigator.vibrate(25); } catch (err) {}
+              }
+            }, 160);
           }, { passive: true });
 
           handle.addEventListener('touchmove', (e) => {
-            if (!this.draggedHabitId) return;
             const touch = e.touches[0];
-            
-            // Find element under touch point
+            const deltaY = Math.abs(touch.clientY - touchStartY);
+            const deltaX = Math.abs(touch.clientX - touchStartX);
+
+            if (!isTouchDragging) {
+              if (deltaX > 8 || deltaY > 8) {
+                clearTimeout(touchHoldTimer);
+              }
+              return;
+            }
+
+            if (e.cancelable) e.preventDefault();
+
             const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
             const targetCard = elemBelow ? elemBelow.closest('.habit-card-v2[data-habit-id]') : null;
 
@@ -2512,29 +2554,42 @@ class GoalGettenApp {
                 targetCard.classList.add('drag-over-bottom');
               }
             }
-          }, { passive: true });
+          }, { passive: false });
 
-          handle.addEventListener('touchend', (e) => {
-            if (!this.draggedHabitId) return;
-            const touch = e.changedTouches[0];
-            const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-            const targetCard = elemBelow ? elemBelow.closest('.habit-card-v2[data-habit-id]') : null;
+          const handleTouchEnd = (e) => {
+            clearTimeout(touchHoldTimer);
+            if (!isTouchDragging || !this.draggedHabitId) {
+              isTouchDragging = false;
+              this.draggedHabitId = null;
+              card.classList.remove('dragging');
+              return;
+            }
+
+            const touch = e.changedTouches ? e.changedTouches[0] : null;
+            if (touch) {
+              const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+              const targetCard = elemBelow ? elemBelow.closest('.habit-card-v2[data-habit-id]') : null;
+
+              if (targetCard) {
+                const targetId = targetCard.getAttribute('data-habit-id');
+                if (targetId && targetId !== this.draggedHabitId) {
+                  const rect = targetCard.getBoundingClientRect();
+                  const isBelow = touch.clientY >= (rect.top + rect.height / 2);
+                  GoalGettenApp.reorderHabits(this.draggedHabitId, targetId, isBelow);
+                }
+              }
+            }
 
             document.querySelectorAll('.habit-card-v2').forEach(c => {
               c.classList.remove('drag-over-top', 'drag-over-bottom', 'dragging');
             });
 
-            if (targetCard) {
-              const targetId = targetCard.getAttribute('data-habit-id');
-              if (targetId && targetId !== this.draggedHabitId) {
-                const rect = targetCard.getBoundingClientRect();
-                const isBelow = touch.clientY >= (rect.top + rect.height / 2);
-                GoalGettenApp.reorderHabits(this.draggedHabitId, targetId, isBelow);
-              }
-            }
-
+            isTouchDragging = false;
             this.draggedHabitId = null;
-          });
+          };
+
+          handle.addEventListener('touchend', handleTouchEnd, { passive: true });
+          handle.addEventListener('touchcancel', handleTouchEnd, { passive: true });
         }
       });
     });
@@ -2549,7 +2604,6 @@ class GoalGettenApp {
 
     const [moved] = habits.splice(fromIdx, 1);
     
-    // Find target index in modified array
     const targetIdxInNewArray = habits.findIndex(h => h.id === targetId);
     const insertIdx = isBelow ? targetIdxInNewArray + 1 : targetIdxInNewArray;
 
@@ -2557,6 +2611,7 @@ class GoalGettenApp {
     StorageManager.saveHabits(habits);
 
     this.currentSortMode = 'custom';
+    if (window.StorageManager) StorageManager.setSortMode('custom');
     const sortSelect = document.getElementById('habit-sort-select');
     if (sortSelect) sortSelect.value = 'custom';
 

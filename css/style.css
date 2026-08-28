@@ -463,10 +463,12 @@ button {
   background: var(--habit-color, var(--cat-spiritual));
 }
 
-.habit-card-v2:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow: var(--shadow-md);
+@media (hover: hover) and (pointer: fine) {
+  .habit-card-v2:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: var(--shadow-md);
+  }
 }
 
 .habit-card-v2.completed {
@@ -502,9 +504,11 @@ button {
   flex-shrink: 0;
 }
 
-.custom-checkbox:hover {
-  border-color: var(--cat-health);
-  transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+  .custom-checkbox:hover {
+    border-color: var(--cat-health);
+    transform: scale(1.1);
+  }
 }
 
 .habit-card-v2.completed .custom-checkbox {
@@ -739,8 +743,10 @@ button {
   transition: all 0.15s ease;
 }
 
-.day-pill-btn:hover {
-  transform: scale(1.05);
+@media (hover: hover) and (pointer: fine) {
+  .day-pill-btn:hover {
+    transform: scale(1.05);
+  }
 }
 
 .day-pill-btn.done {
@@ -3290,16 +3296,12 @@ kbd {
 
 .habit-card-v2.drag-over-top {
   border-top: 3px solid #38bdf8 !important;
-  transform: translateY(4px);
   box-shadow: 0 -6px 14px rgba(56, 189, 248, 0.4);
-  transition: transform 0.15s ease;
 }
 
 .habit-card-v2.drag-over-bottom {
   border-bottom: 3px solid #38bdf8 !important;
-  transform: translateY(-4px);
   box-shadow: 0 6px 14px rgba(56, 189, 248, 0.4);
-  transition: transform 0.15s ease;
 }
 
 /* ==========================================================================

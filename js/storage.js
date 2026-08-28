@@ -14,7 +14,8 @@ const STORAGE_KEYS = {
   USER_SESSION: 'goalgetteng_user_session',
   LOCAL_ACCOUNTS: 'goalgetteng_local_accounts',
   XP: 'goalgetteng_xp',
-  THEME: 'goalgetten_theme'
+  THEME: 'goalgetten_theme',
+  SORT_MODE: 'goalgetten_sort_mode'
 };
 
 const DEFAULT_PIN = 'ARMANT';
@@ -407,6 +408,14 @@ class StorageManager {
 
   static setTheme(theme) {
     localStorage.setItem(STORAGE_KEYS.THEME, theme || 'dark');
+  }
+
+  static getSortMode() {
+    return localStorage.getItem(STORAGE_KEYS.SORT_MODE) || 'time-24h';
+  }
+
+  static setSortMode(mode) {
+    localStorage.setItem(STORAGE_KEYS.SORT_MODE, mode || 'time-24h');
   }
 
   static resetToDefault() {
