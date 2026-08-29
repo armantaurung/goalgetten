@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS public.habits (
   goal_title TEXT DEFAULT '',
   title TEXT NOT NULL,
   category TEXT DEFAULT 'Spiritual',
+  time TEXT DEFAULT '08:00',
   duration INTEGER DEFAULT 15,
   plan TEXT DEFAULT '',
   color TEXT DEFAULT '#8b5cf6',

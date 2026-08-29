@@ -627,6 +627,9 @@ class GoalGettenApp {
       const items = groupedHabits[p.key];
       if (!items || items.length === 0) return;
 
+      // Automatically sort chronologically by 24-hour time inside each period
+      items.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+
       const completedCount = items.filter(h => h.history && h.history[this.todayIso]).length;
       const isAllDone = completedCount === items.length && items.length > 0;
 
@@ -2490,12 +2493,19 @@ class GoalGettenApp {
       habits.push(savedHabit);
     }
 
+    // Auto-sort habits chronologically by 24-hour time when time is set/edited
+    habits.sort((a, b) => (a.time || '08:00').localeCompare(b.time || '08:00'));
+    habits.forEach((h, idx) => {
+      h.order_index = idx;
+    });
+
     StorageManager.saveHabits(habits);
     if (window.AuthManager && savedHabit) {
       AuthManager.pushHabitSave(savedHabit);
+      AuthManager.pushHabitsReorder(habits).catch(() => {});
     }
     this.closeModal('modal-habit');
-    this.showToast(id ? '✏️ Habit berhasil diperbarui!' : '✅ Habit baru berhasil ditambahkan!', 'success');
+    this.showToast(id ? '✏️ Habit & jadwal 24 jam berhasil diperbarui!' : '✅ Habit baru berhasil ditambahkan!', 'success');
     this.renderAll();
   }
 
