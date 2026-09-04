@@ -1854,6 +1854,52 @@ class GoalGettenApp {
       <!-- Action Integrations & Tools Grid -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-top: 1.5rem;">
         
+        <!-- Direct Google Calendar API Sync Box -->
+        <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1.25rem; padding: 1.5rem; grid-column: 1 / -1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div class="stat-icon" style="background: rgba(66, 133, 244, 0.2); color: #4285f4;">🔄</div>
+              <div>
+                <h4 style="font-size: 1.15rem; color: var(--text-primary); font-family: var(--font-display);">Google Calendar API (Sync Langsung Online)</h4>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">Integrasi Google Identity Services & Calendar v3</span>
+              </div>
+            </div>
+            <span id="gcal-conn-badge" class="badge-pill badge-pill-muted">Belum Terhubung</span>
+          </div>
+
+          <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            Hubungkan akun Google Anda untuk menjadwalkan kebiasaan harian secara otomatis sebagai agenda berulang (recurring event) di Google Calendar lengkap dengan alarm pop-up 5 menit sebelum kegiatan.
+          </p>
+
+          <div style="width: 100%; display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <div style="flex: 1; min-width: 250px;">
+              <input type="text" id="gcal-client-id-input" class="form-control" placeholder="Masukkan Google OAuth 2.0 Client ID" style="font-size: 0.85rem;">
+            </div>
+            <button class="btn btn-secondary" onclick="GoalGettenApp.saveGCalClientId()">Simpan Client ID</button>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; width: 100%;">
+            <button class="btn btn-primary" id="btn-gcal-signin" onclick="GoalGettenApp.signInGCal()">
+              <span>🔑 Login Akun Google</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-gcal-signout" onclick="GoalGettenApp.signOutGCal()" style="display: none; color: #ef4444;">
+              <span>🚪 Putus Koneksi</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-gcal-sync" onclick="GoalGettenApp.syncHabitsToGCal()" style="display: none;">
+              <span>🚀 Ekspor Semua Habit ke Google Calendar</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-gcal-fetch" onclick="GoalGettenApp.loadGCalEvents()" style="display: none;">
+              <span>📅 Muat Agenda Mendatang</span>
+            </button>
+          </div>
+
+          <!-- Upcoming Events Feed Container -->
+          <div id="gcal-upcoming-container" style="width: 100%; display: none;">
+            <h5 style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 0.5rem; font-weight: 700;">Agenda Mendatang dari Google Calendar:</h5>
+            <div id="gcal-upcoming-events" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+          </div>
+        </div>
+
         <!-- Google Calendar Card -->
         <div class="stat-box" style="flex-direction: column; align-items: flex-start; gap: 1rem; padding: 1.5rem;">
           <div style="display: flex; align-items: center; gap: 0.75rem;">
@@ -1902,6 +1948,723 @@ class GoalGettenApp {
 
       </div>
     `;
+    GoalGettenApp.initIntegrationStatus();
+    GoalGettenApp.updateIntegrationStatusBadges();
+  }
+
+  // =========================================================================
+  // Integrations Status & Badges (Todoist & Google Calendar)
+  // =========================================================================
+  static initIntegrationStatus() {
+    const gcalInput = document.getElementById('gcal-client-id-input');
+    if (gcalInput && typeof GoogleCalendarSync !== 'undefined') {
+      gcalInput.value = GoogleCalendarSync.getClientId();
+    }
+  }
+
+  static updateIntegrationStatusBadges() {
+    // Todoist Status
+    const isTodoistConnected = typeof TodoistSync !== 'undefined' && TodoistSync.isConnected();
+    const todoistDot = document.getElementById('nav-todoist-dot');
+    const todoistPill = document.getElementById('todoist-badge-pill');
+    const todoistDesc = document.getElementById('todoist-banner-desc');
+
+    if (todoistDot) {
+      todoistDot.className = isTodoistConnected ? 'status-dot-online' : 'status-dot-offline';
+      todoistDot.title = isTodoistConnected ? 'Todoist: Terhubung' : 'Todoist: Belum Terhubung';
+    }
+
+    if (todoistPill) {
+      if (isTodoistConnected) {
+        todoistPill.className = 'badge-pill badge-pill-success';
+        todoistPill.textContent = 'Terhubung';
+      } else {
+        todoistPill.className = 'badge-pill badge-pill-muted';
+        todoistPill.textContent = 'Belum Terhubung';
+      }
+    }
+
+    if (todoistDesc) {
+      if (isTodoistConnected) {
+        todoistDesc.textContent = 'Akun Todoist aktif tersambung. Anda dapat melakukan sinkronisasi dua arah proyek dan tugas kapan saja.';
+      } else {
+        todoistDesc.textContent = 'Hubungkan akun Todoist untuk sinkronisasi proyek dan tugas otomatis dua arah.';
+      }
+    }
+
+    // Google Calendar Status
+    if (typeof GoogleCalendarSync !== 'undefined') {
+      const gcalStatus = GoogleCalendarSync.getConnectionStatus();
+      const gcalBadge = document.getElementById('gcal-conn-badge');
+      const btnSignIn = document.getElementById('btn-gcal-signin');
+      const btnSignOut = document.getElementById('btn-gcal-signout');
+      const btnSync = document.getElementById('btn-gcal-sync');
+      const btnFetch = document.getElementById('btn-gcal-fetch');
+
+      if (gcalBadge) {
+        if (gcalStatus === 'connected') {
+          gcalBadge.className = 'badge-pill badge-pill-success';
+          gcalBadge.textContent = 'Terhubung (Online)';
+        } else if (gcalStatus === 'session-expired') {
+          gcalBadge.className = 'badge-pill badge-pill-warning';
+          gcalBadge.textContent = 'Sesi Berakhir (Perlu Login Ulang)';
+        } else {
+          gcalBadge.className = 'badge-pill badge-pill-muted';
+          gcalBadge.textContent = 'Belum Terhubung';
+        }
+      }
+
+      const isConnected = gcalStatus === 'connected';
+      if (btnSignIn) btnSignIn.style.display = isConnected ? 'none' : 'inline-flex';
+      if (btnSignOut) btnSignOut.style.display = isConnected ? 'inline-flex' : 'none';
+      if (btnSync) btnSync.style.display = isConnected ? 'inline-flex' : 'none';
+      if (btnFetch) btnFetch.style.display = isConnected ? 'inline-flex' : 'none';
+    }
+  }
+
+  // =========================================================================
+  // Proyek & Tugas Module Controller
+  // =========================================================================
+  static currentProjectId = null;
+  static currentTaskFilter = 'all';
+
+  static renderProjectsTab() {
+    this.renderProyekTugas();
+  }
+
+  static renderProyekTugas() {
+    if (typeof ProjectManager === 'undefined') return;
+
+    this.updateIntegrationStatusBadges();
+    const projects = ProjectManager.getProjects();
+    const stats = ProjectManager.getStats();
+
+    // 1. Update Project Stats
+    const elTotalProj = document.getElementById('proj-stat-total');
+    const elTotalTasks = document.getElementById('proj-stat-tasks');
+    const elDoneTasks = document.getElementById('proj-stat-done');
+    const elOverdueTasks = document.getElementById('proj-stat-overdue');
+
+    if (elTotalProj) elTotalProj.textContent = `${stats.totalProjects} Proyek`;
+    if (elTotalTasks) elTotalTasks.textContent = `${stats.totalTasks} Tugas`;
+    if (elDoneTasks) {
+      const pct = stats.totalTasks > 0 ? Math.round((stats.doneTasks / stats.totalTasks) * 100) : 0;
+      elDoneTasks.textContent = `${stats.doneTasks} Selesai (${pct}%)`;
+    }
+    if (elOverdueTasks) elOverdueTasks.textContent = `${stats.overdueTasks} Terlewat`;
+
+    // 2. Active project selection logic
+    if (projects.length > 0) {
+      if (!this.currentProjectId || !projects.some(p => p.id === this.currentProjectId)) {
+        this.currentProjectId = projects[0].id;
+      }
+    } else {
+      this.currentProjectId = null;
+    }
+
+    // 3. Render Projects List
+    const navContainer = document.getElementById('projects-nav-container');
+    if (navContainer) {
+      if (projects.length === 0) {
+        navContainer.innerHTML = `
+          <div style="text-align: center; padding: 1.5rem 1rem; color: var(--text-muted); font-size: 0.85rem;">
+            Belum ada proyek.<br>
+            <button class="btn btn-primary btn-sm" style="margin-top: 0.75rem;" onclick="GoalGettenApp.openAddProjectModal()">+ Buat Proyek</button>
+          </div>
+        `;
+      } else {
+        navContainer.innerHTML = projects.map(p => {
+          const totalT = p.tasks ? p.tasks.length : 0;
+          const doneT = p.tasks ? p.tasks.filter(t => t.done).length : 0;
+          const isActive = p.id === this.currentProjectId;
+
+          return `
+            <div class="project-nav-item ${isActive ? 'active' : ''}" onclick="GoalGettenApp.selectProject('${p.id}')">
+              <div class="project-nav-left">
+                <span class="project-nav-color-bar" style="background: ${p.color || '#8b5cf6'};"></span>
+                <span class="project-nav-icon">${p.icon || '📋'}</span>
+                <span class="project-nav-title" title="${p.title}">${p.title}</span>
+              </div>
+              <div class="project-nav-right">
+                <span class="project-nav-count">${doneT}/${totalT}</span>
+                <div class="project-nav-actions" onclick="event.stopPropagation()">
+                  <button class="icon-btn-sm" style="width: 22px; height: 22px;" title="Edit Proyek" onclick="GoalGettenApp.openEditProjectModal('${p.id}')">✏️</button>
+                  <button class="icon-btn-sm" style="width: 22px; height: 22px; color: #ef4444;" title="Hapus Proyek" onclick="GoalGettenApp.deleteProject('${p.id}')">🗑️</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // 4. Render Active Project Header & Tasks
+    const activeHeader = document.getElementById('project-active-header');
+    const tasksContainer = document.getElementById('tasks-list-container');
+
+    const activeProject = projects.find(p => p.id === this.currentProjectId);
+
+    if (!activeProject) {
+      if (activeHeader) activeHeader.innerHTML = '<p style="color: var(--text-muted);">Pilih proyek di sebelah kiri untuk melihat daftar tugas.</p>';
+      if (tasksContainer) tasksContainer.innerHTML = '';
+      return;
+    }
+
+    if (activeHeader) {
+      const isTodoistLinked = Boolean(activeProject.todoistProjectId);
+      activeHeader.innerHTML = `
+        <div class="project-active-info">
+          <div class="project-active-icon-badge" style="background: ${activeProject.color}20; border: 1px solid ${activeProject.color}40;">
+            ${activeProject.icon || '📋'}
+          </div>
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+              <h3 class="project-active-title">${activeProject.title}</h3>
+              ${isTodoistLinked 
+                ? `<span class="badge-pill badge-pill-success" title="Terhubung ke Todoist Project ID: ${activeProject.todoistProjectId}">⚡ Todoist Synced</span>` 
+                : `<span class="badge-pill badge-pill-muted">Lokal</span>`}
+            </div>
+            <p style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.2rem;">
+              ${activeProject.tasks.length} total tugas • ${activeProject.tasks.filter(t => t.done).length} selesai
+            </p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.openEditProjectModal('${activeProject.id}')">Edit Proyek</button>
+          <button class="btn btn-primary btn-sm" onclick="GoalGettenApp.openAddTaskModal('${activeProject.id}')">+ Tambah Tugas</button>
+        </div>
+      `;
+    }
+
+    if (tasksContainer) {
+      let tasks = activeProject.tasks || [];
+      if (this.currentTaskFilter === 'active') {
+        tasks = tasks.filter(t => !t.done);
+      } else if (this.currentTaskFilter === 'done') {
+        tasks = tasks.filter(t => t.done);
+      }
+
+      if (tasks.length === 0) {
+        tasksContainer.innerHTML = `
+          <div style="text-align: center; padding: 3rem 1rem; color: var(--text-muted); background: var(--bg-input); border-radius: var(--radius-md); border: 1px dashed var(--border-glass);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
+            <h4 style="font-size: 1rem; color: var(--text-secondary);">Tidak ada tugas untuk ditampilkan</h4>
+            <p style="font-size: 0.82rem; margin-top: 0.25rem;">
+              ${this.currentTaskFilter !== 'all' ? 'Coba ganti filter tugas di atas atau tambah tugas baru.' : 'Mulai rancang langkah aksi Anda dengan menambahkan tugas pertama.'}
+            </p>
+            <button class="btn btn-primary btn-sm" style="margin-top: 1rem;" onclick="GoalGettenApp.openAddTaskModal('${activeProject.id}')">+ Tambah Tugas Baru</button>
+          </div>
+        `;
+      } else {
+        const today = this.todayIso;
+        tasksContainer.innerHTML = tasks.map(t => {
+          const isOverdue = t.dueDate && t.dueDate < today && !t.done;
+          let priorityTag = '';
+          if (t.priority === 1) {
+            priorityTag = '<span class="task-priority-tag priority-p1">🔴 P1 Mendesak</span>';
+          } else if (t.priority === 2) {
+            priorityTag = '<span class="task-priority-tag priority-p2">🟡 P2 Normal</span>';
+          } else {
+            priorityTag = '<span class="task-priority-tag priority-p3">🟢 P3 Santai</span>';
+          }
+
+          let formattedDate = '';
+          if (t.dueDate) {
+            const parts = t.dueDate.split('-');
+            if (parts.length === 3) {
+              const d = new Date(parts[0], parts[1] - 1, parts[2]);
+              formattedDate = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            } else {
+              formattedDate = t.dueDate;
+            }
+          }
+
+          return `
+            <div class="task-card ${t.done ? 'completed' : ''}" id="task-card-${t.id}">
+              <div class="task-checkbox-custom ${t.done ? 'checked' : ''}" 
+                   onclick="GoalGettenApp.toggleTask('${activeProject.id}', '${t.id}')"
+                   title="${t.done ? 'Tandai belum selesai' : 'Tandai selesai'}">
+                ${t.done ? '✓' : ''}
+              </div>
+
+              <div class="task-body">
+                <div class="task-title-line">
+                  <span class="task-text">${t.title}</span>
+                  ${priorityTag}
+                  ${t.todoistTaskId ? `<span class="badge-pill badge-pill-muted" style="font-size: 0.65rem;" title="ID Todoist: ${t.todoistTaskId}">⚡ Todoist</span>` : ''}
+                </div>
+
+                <div class="task-meta-line">
+                  ${formattedDate ? `
+                    <span class="task-due-tag ${isOverdue ? 'overdue' : ''}">
+                      📅 ${isOverdue ? '⚠️ Terlewat: ' : 'Deadline: '}${formattedDate}
+                    </span>
+                  ` : ''}
+                </div>
+
+                ${t.notes ? `
+                  <div class="task-notes-snippet">
+                    📝 ${t.notes}
+                  </div>
+                ` : ''}
+              </div>
+
+              <div class="task-actions">
+                <button class="icon-btn-sm" title="Edit Tugas" onclick="GoalGettenApp.openEditTaskModal('${activeProject.id}', '${t.id}')">✏️</button>
+                <button class="icon-btn-sm" style="color: #ef4444;" title="Hapus Tugas" onclick="GoalGettenApp.deleteTask('${activeProject.id}', '${t.id}')">🗑️</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  static selectProject(projectId) {
+    this.currentProjectId = projectId;
+    this.renderProyekTugas();
+  }
+
+  static setTaskFilter(filter) {
+    this.currentTaskFilter = filter;
+    document.querySelectorAll('.filter-pill').forEach(btn => {
+      if (btn.getAttribute('data-filter') === filter) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+    this.renderProyekTugas();
+  }
+
+  // --- Project CRUD ---
+  static openAddProjectModal() {
+    document.getElementById('modal-project-id').value = '';
+    document.getElementById('modal-project-title').value = '';
+    document.getElementById('modal-project-icon').value = '📋';
+    document.getElementById('modal-project-color').value = '#8b5cf6';
+    document.getElementById('modal-project-heading').textContent = 'Tambah Proyek Baru';
+    document.getElementById('modal-project').classList.add('active');
+  }
+
+  static openEditProjectModal(projectId) {
+    const project = ProjectManager.getProject(projectId);
+    if (!project) return;
+
+    document.getElementById('modal-project-id').value = project.id;
+    document.getElementById('modal-project-title').value = project.title;
+    document.getElementById('modal-project-icon').value = project.icon || '📋';
+    document.getElementById('modal-project-color').value = project.color || '#8b5cf6';
+    document.getElementById('modal-project-heading').textContent = 'Edit Proyek';
+    document.getElementById('modal-project').classList.add('active');
+  }
+
+  static saveProjectFromForm() {
+    const id = document.getElementById('modal-project-id').value;
+    const title = document.getElementById('modal-project-title').value.trim();
+    const icon = document.getElementById('modal-project-icon').value.trim() || '📋';
+    const color = document.getElementById('modal-project-color').value || '#8b5cf6';
+
+    if (!title) return;
+
+    if (id) {
+      ProjectManager.updateProject(id, { title, icon, color });
+    } else {
+      const newProj = ProjectManager.addProject({ title, icon, color });
+      this.currentProjectId = newProj.id;
+    }
+
+    this.closeModal('modal-project');
+    this.renderProyekTugas();
+  }
+
+  static deleteProject(projectId) {
+    const project = ProjectManager.getProject(projectId);
+    if (!project) return;
+
+    if (!confirm(`Hapus proyek "${project.title}" beserta seluruh tugasnya?`)) return;
+
+    ProjectManager.deleteProject(projectId);
+    if (this.currentProjectId === projectId) {
+      this.currentProjectId = null;
+    }
+    this.renderProyekTugas();
+  }
+
+  // --- Task CRUD ---
+  static openAddTaskModal(preselectedProjectId = null) {
+    const projects = ProjectManager.getProjects();
+    const select = document.getElementById('modal-task-project');
+    if (!select) return;
+
+    select.innerHTML = projects.map(p => `
+      <option value="${p.id}" ${p.id === (preselectedProjectId || this.currentProjectId) ? 'selected' : ''}>
+        ${p.icon || '📋'} ${p.title}
+      </option>
+    `).join('');
+
+    document.getElementById('modal-task-id').value = '';
+    document.getElementById('modal-task-title').value = '';
+    document.getElementById('modal-task-priority').value = '2';
+    document.getElementById('modal-task-duedate').value = '';
+    document.getElementById('modal-task-notes').value = '';
+    document.getElementById('modal-task-heading').textContent = 'Tambah Tugas Baru';
+    document.getElementById('modal-task').classList.add('active');
+  }
+
+  static openEditTaskModal(projectId, taskId) {
+    const project = ProjectManager.getProject(projectId);
+    if (!project) return;
+    const task = project.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const select = document.getElementById('modal-task-project');
+    const projects = ProjectManager.getProjects();
+    select.innerHTML = projects.map(p => `
+      <option value="${p.id}" ${p.id === projectId ? 'selected' : ''}>
+        ${p.icon || '📋'} ${p.title}
+      </option>
+    `).join('');
+
+    document.getElementById('modal-task-id').value = task.id;
+    document.getElementById('modal-task-title').value = task.title;
+    document.getElementById('modal-task-priority').value = task.priority || 2;
+    document.getElementById('modal-task-duedate').value = task.dueDate || '';
+    document.getElementById('modal-task-notes').value = task.notes || '';
+    document.getElementById('modal-task-heading').textContent = 'Edit Tugas';
+    document.getElementById('modal-task').classList.add('active');
+  }
+
+  static saveTaskFromForm() {
+    const taskId = document.getElementById('modal-task-id').value;
+    const projectId = document.getElementById('modal-task-project').value;
+    const title = document.getElementById('modal-task-title').value.trim();
+    const priority = parseInt(document.getElementById('modal-task-priority').value) || 2;
+    const dueDate = document.getElementById('modal-task-duedate').value;
+    const notes = document.getElementById('modal-task-notes').value.trim();
+
+    if (!title || !projectId) return;
+
+    if (taskId) {
+      ProjectManager.updateTask(projectId, taskId, { title, priority, dueDate, notes });
+    } else {
+      ProjectManager.addTask(projectId, { title, priority, dueDate, notes });
+    }
+
+    this.currentProjectId = projectId;
+    this.closeModal('modal-task');
+    this.renderProyekTugas();
+  }
+
+  static async toggleTask(projectId, taskId) {
+    const project = ProjectManager.getProject(projectId);
+    if (!project) return;
+    const task = project.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newDoneState = ProjectManager.toggleTask(projectId, taskId);
+    this.renderProyekTugas();
+
+    // Sound effect
+    if (newDoneState && window.SoundEffects) {
+      SoundEffects.playPop();
+    }
+
+    // Two-way sync to Todoist if task is linked
+    if (task.todoistTaskId && typeof TodoistSync !== 'undefined' && TodoistSync.isConnected()) {
+      try {
+        if (newDoneState) {
+          await TodoistSync.closeTodoistTask(task.todoistTaskId);
+        } else {
+          await TodoistSync.reopenTodoistTask(task.todoistTaskId);
+        }
+      } catch (err) {
+        console.warn('Gagal sinkron status tugas ke Todoist:', err);
+      }
+    }
+  }
+
+  static deleteTask(projectId, taskId) {
+    if (!confirm('Hapus tugas ini?')) return;
+    ProjectManager.deleteTask(projectId, taskId);
+    this.renderProyekTugas();
+  }
+
+  // =========================================================================
+  // Todoist Integration UI Handlers
+  // =========================================================================
+  static openTodoistModal() {
+    const tokenInput = document.getElementById('modal-todoist-token');
+    if (tokenInput && typeof TodoistSync !== 'undefined') {
+      tokenInput.value = TodoistSync.getToken();
+    }
+    const feedback = document.getElementById('todoist-test-feedback');
+    if (feedback) feedback.style.display = 'none';
+
+    document.getElementById('modal-todoist').classList.add('active');
+  }
+
+  static saveTodoistToken() {
+    const token = document.getElementById('modal-todoist-token').value.trim();
+    if (!token) {
+      alert('Silakan masukkan API Token Todoist terlebih dahulu.');
+      return;
+    }
+    TodoistSync.setToken(token);
+    this.closeModal('modal-todoist');
+    this.updateIntegrationStatusBadges();
+    alert('API Token Todoist berhasil disimpan!');
+  }
+
+  static clearTodoistToken() {
+    if (confirm('Putus koneksi Todoist dan hapus token yang tersimpan?')) {
+      TodoistSync.clearToken();
+      const tokenInput = document.getElementById('modal-todoist-token');
+      if (tokenInput) tokenInput.value = '';
+      this.updateIntegrationStatusBadges();
+      this.closeModal('modal-todoist');
+    }
+  }
+
+  static async testTodoistConnection() {
+    const token = document.getElementById('modal-todoist-token').value.trim();
+    const feedback = document.getElementById('todoist-test-feedback');
+    if (!feedback) return;
+
+    if (!token) {
+      feedback.style.display = 'block';
+      feedback.className = 'badge-pill-danger';
+      feedback.textContent = 'Masukkan API Token terlebih dahulu.';
+      return;
+    }
+
+    feedback.style.display = 'block';
+    feedback.className = 'badge-pill-warning';
+    feedback.textContent = '⏳ Menghubungi Todoist API...';
+
+    // Temporary set to test
+    const prevToken = TodoistSync.getToken();
+    TodoistSync.setToken(token);
+
+    const result = await TodoistSync.testConnection();
+    if (result.ok) {
+      feedback.className = 'badge-pill-success';
+      feedback.textContent = `✅ ${result.message}`;
+      this.updateIntegrationStatusBadges();
+    } else {
+      TodoistSync.setToken(prevToken);
+      feedback.className = 'badge-pill-danger';
+      feedback.textContent = `❌ ${result.message}`;
+    }
+  }
+
+  static async syncAllToTodoist() {
+    if (!TodoistSync.isConnected()) {
+      this.openTodoistModal();
+      return;
+    }
+
+    this.showSyncProgress('Sinkronkan Proyek ke Todoist 🔄', 'Mempersiapkan data lokal...');
+
+    try {
+      const results = await TodoistSync.syncAllProjectsToTodoist((stepText) => {
+        this.updateSyncProgress(stepText);
+      });
+
+      let summaryHtml = `<span style="color: #10b981;">✅ Berhasil sinkron ${results.synced} proyek!</span>`;
+      if (results.errors > 0) {
+        summaryHtml += `<br><span style="color: #ef4444;">⚠️ Terjadi ${results.errors} kendala saat sinkron.</span>`;
+      }
+      this.finishSyncProgress(summaryHtml, results.details);
+      this.renderProyekTugas();
+    } catch (err) {
+      this.finishSyncProgress(`<span style="color: #ef4444;">❌ Gagal sinkronisasi: ${err.message}</span>`);
+    }
+  }
+
+  static async importFromTodoist() {
+    if (!TodoistSync.isConnected()) {
+      this.openTodoistModal();
+      return;
+    }
+
+    this.showSyncProgress('Impor dari Todoist ⬇️', 'Menghubungi Todoist...');
+
+    try {
+      const results = await TodoistSync.importFromTodoist((stepText) => {
+        this.updateSyncProgress(stepText);
+      });
+
+      let summaryHtml = `<span style="color: #10b981;">✅ Berhasil mengimpor ${results.imported} item dari Todoist!</span>`;
+      if (results.skipped > 0) {
+        summaryHtml += `<br><span style="color: var(--text-secondary);">ℹ️ ${results.skipped} proyek sudah terhubung sebelumnya.</span>`;
+      }
+      this.finishSyncProgress(summaryHtml, results.details);
+      this.renderProyekTugas();
+    } catch (err) {
+      this.finishSyncProgress(`<span style="color: #ef4444;">❌ Gagal impor: ${err.message}</span>`);
+    }
+  }
+
+  // =========================================================================
+  // Google Calendar API Handlers
+  // =========================================================================
+  static saveGCalClientId() {
+    const input = document.getElementById('gcal-client-id-input');
+    if (!input) return;
+    const clientId = input.value.trim();
+    if (!clientId) {
+      alert('Silakan masukkan Google OAuth 2.0 Client ID.');
+      return;
+    }
+    GoogleCalendarSync.setClientId(clientId);
+    alert('Google Client ID berhasil disimpan!');
+    this.updateIntegrationStatusBadges();
+  }
+
+  static async signInGCal() {
+    const clientId = GoogleCalendarSync.getClientId();
+    if (!clientId) {
+      alert('Harap isi dan simpan Google Client ID terlebih dahulu pada kolom di atas.');
+      const input = document.getElementById('gcal-client-id-input');
+      if (input) input.focus();
+      return;
+    }
+
+    try {
+      const btn = document.getElementById('btn-gcal-signin');
+      if (btn) btn.innerHTML = '<span>⏳ Memuat Google Sign-In...</span>';
+
+      await GoogleCalendarSync.initGoogleAPI(clientId);
+      GoogleCalendarSync.signIn((success, error) => {
+        if (success) {
+          GoalGettenApp.updateIntegrationStatusBadges();
+          GoalGettenApp.loadGCalEvents();
+          alert('Berhasil terhubung dengan akun Google Calendar! 🎯');
+        } else {
+          alert('Gagal login ke Google: ' + (error?.message || error || 'Otorisasi ditolak'));
+          GoalGettenApp.updateIntegrationStatusBadges();
+        }
+      });
+    } catch (err) {
+      alert('Error inisialisasi Google Calendar: ' + err.message);
+      this.updateIntegrationStatusBadges();
+    }
+  }
+
+  static signOutGCal() {
+    if (confirm('Putus koneksi Google Calendar?')) {
+      GoogleCalendarSync.signOut();
+      this.updateIntegrationStatusBadges();
+      const eventsContainer = document.getElementById('gcal-upcoming-container');
+      if (eventsContainer) eventsContainer.style.display = 'none';
+      alert('Koneksi Google Calendar telah diputus.');
+    }
+  }
+
+  static async syncHabitsToGCal() {
+    if (!GoogleCalendarSync.isConnected()) {
+      alert('Silakan login ke Google Calendar terlebih dahulu.');
+      return;
+    }
+
+    const habits = StorageManager.getHabits();
+    if (habits.length === 0) {
+      alert('Tidak ada habit yang terdaftar untuk diekspor.');
+      return;
+    }
+
+    this.showSyncProgress('Ekspor Habit ke Google Calendar 🚀', 'Membuat jadwal berulang di Google Calendar...');
+
+    try {
+      const results = await GoogleCalendarSync.exportHabitsToCalendar(habits, (stepText) => {
+        this.updateSyncProgress(stepText);
+      });
+
+      let summary = `<span style="color: #10b981;">✅ Berhasil mengekspor ${results.created} habit ke Google Calendar!</span>`;
+      if (results.errors > 0) {
+        summary += `<br><span style="color: #ef4444;">⚠️ ${results.errors} habit gagal diekspor.</span>`;
+      }
+      this.finishSyncProgress(summary, results.details);
+      this.loadGCalEvents();
+    } catch (err) {
+      this.finishSyncProgress(`<span style="color: #ef4444;">❌ Gagal ekspor: ${err.message}</span>`);
+    }
+  }
+
+  static async loadGCalEvents() {
+    if (!GoogleCalendarSync.isConnected()) return;
+
+    const container = document.getElementById('gcal-upcoming-container');
+    const eventsList = document.getElementById('gcal-upcoming-events');
+    if (!container || !eventsList) return;
+
+    container.style.display = 'block';
+    eventsList.innerHTML = '<span style="font-size: 0.82rem; color: var(--text-muted);">Memuat agenda mendatang dari kalender...</span>';
+
+    try {
+      const events = await GoogleCalendarSync.listUpcomingEvents(6);
+      if (events.length === 0) {
+        eventsList.innerHTML = '<span style="font-size: 0.82rem; color: var(--text-muted);">Tidak ada agenda dalam waktu dekat di Google Calendar.</span>';
+      } else {
+        eventsList.innerHTML = events.map(ev => `
+          <div class="gcal-event-card">
+            <span class="gcal-event-title">${ev.summary || '(Tanpa Judul)'}</span>
+            <span class="gcal-event-time">${GoogleCalendarSync.formatEventTime(ev)}</span>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      eventsList.innerHTML = `<span style="font-size: 0.82rem; color: #ef4444;">Gagal memuat agenda: ${err.message}</span>`;
+    }
+  }
+
+  // =========================================================================
+  // Sync Progress Modal Helper
+  // =========================================================================
+  static showSyncProgress(title, initialStep) {
+    document.getElementById('sync-progress-title').textContent = title;
+    document.getElementById('sync-progress-current-step').textContent = initialStep;
+    document.getElementById('sync-progress-spinner-area').style.display = 'flex';
+    document.getElementById('sync-progress-done-btn').style.display = 'none';
+
+    const logBox = document.getElementById('sync-progress-log');
+    if (logBox) logBox.innerHTML = `<div class="sync-log-item" style="color: var(--text-secondary);">[${new Date().toLocaleTimeString()}] ${initialStep}</div>`;
+
+    document.getElementById('modal-sync-progress').classList.add('active');
+  }
+
+  static updateSyncProgress(stepText) {
+    const currentStep = document.getElementById('sync-progress-current-step');
+    if (currentStep) currentStep.textContent = stepText;
+
+    const logBox = document.getElementById('sync-progress-log');
+    if (logBox) {
+      const item = document.createElement('div');
+      item.className = 'sync-log-item';
+      item.textContent = `[${new Date().toLocaleTimeString()}] ${stepText}`;
+      logBox.appendChild(item);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
+  }
+
+  static finishSyncProgress(summaryHtml, details = []) {
+    const spinnerArea = document.getElementById('sync-progress-spinner-area');
+    if (spinnerArea) spinnerArea.style.display = 'none';
+
+    const doneBtn = document.getElementById('sync-progress-done-btn');
+    if (doneBtn) doneBtn.style.display = 'inline-flex';
+
+    const logBox = document.getElementById('sync-progress-log');
+    if (logBox) {
+      const summaryDiv = document.createElement('div');
+      summaryDiv.style.marginTop = '0.5rem';
+      summaryDiv.style.paddingTop = '0.5rem';
+      summaryDiv.style.borderTop = '1px solid var(--border-glass)';
+      summaryDiv.innerHTML = summaryHtml;
+      logBox.appendChild(summaryDiv);
+      logBox.scrollTop = logBox.scrollHeight;
+    }
   }
 
   // =========================================================================
@@ -2260,6 +3023,14 @@ class GoalGettenApp {
       projectForm.addEventListener('submit', (e) => {
         e.preventDefault();
         this.saveProjectFromForm();
+      });
+    }
+
+    const taskForm = document.getElementById('modal-task-form');
+    if (taskForm) {
+      taskForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveTaskFromForm();
       });
     }
   }

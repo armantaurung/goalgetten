@@ -2,19 +2,22 @@
  * GoalGetten 🎯 Service Worker (PWA Auto-Update & Offline Caching)
  */
 
-const CACHE_NAME = 'goalgetten-v6.0';
+const CACHE_NAME = 'goalgetten-v6.1';
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './css/style.css?v=6.0',
-  './css/animations.css?v=6.0',
+  './css/style.css?v=6.1',
+  './css/animations.css?v=6.1',
   './icons/icon.svg',
-  './js/storage.js?v=6.0',
-  './js/gamification.js?v=6.0',
-  './js/auth.js?v=6.0',
-  './js/ai-coach.js?v=6.0',
-  './js/app.js?v=6.0'
+  './js/storage.js?v=6.1',
+  './js/gamification.js?v=6.1',
+  './js/auth.js?v=6.1',
+  './js/ai-coach.js?v=6.1',
+  './js/projects.js?v=6.1',
+  './js/todoist.js?v=6.1',
+  './js/gcal.js?v=6.1',
+  './js/app.js?v=6.1'
 ];
 
 self.addEventListener('install', (event) => {

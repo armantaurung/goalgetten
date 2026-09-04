@@ -426,25 +426,56 @@
       </section>
 
       <!-- =================================================================== -->
-      <!-- PAGE: PROYEK & TUGAS (PROJECT MANAGEMENT) -->
+      <!-- PAGE: PROYEK & TUGAS (TODOIST SYNC & PROJECT MANAGEMENT) -->
       <!-- =================================================================== -->
       <section class="page-section" id="section-proyek-tugas" style="display: none;">
-        <div class="column-header" style="flex-wrap: wrap; gap: 1rem;">
+        <!-- Header -->
+        <div class="column-header">
           <div>
-            <h3 style="font-size: 1.35rem;">Proyek & Manajemen Tugas 📁</h3>
-            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">
-              Kelola proyek bertahap, pantau progres to-do checklist, dan tuntaskan target hingga 100%.
-            </p>
+            <h3 style="font-size: 1.35rem;">Proyek & Tugas 📋</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.2rem;">Pecah target besar menjadi rencana aksi terstruktur, tersinkronisasi dua arah ke Todoist.</p>
           </div>
-          <button class="btn btn-primary" onclick="GoalGettenApp.openAddProjectModal()">
-            <span>+ Buat Proyek Baru</span>
-          </button>
+          <div class="action-buttons-group">
+            <button class="btn btn-secondary" onclick="GoalGettenApp.openTodoistModal()">
+              <span>⚡ Todoist Sync</span>
+              <span id="nav-todoist-dot" class="status-dot-offline"></span>
+            </button>
+            <button class="btn btn-secondary" onclick="GoalGettenApp.openAddProjectModal()">+ Proyek Baru</button>
+            <button class="btn btn-primary" onclick="GoalGettenApp.openAddTaskModal()">+ Tambah Tugas</button>
+          </div>
         </div>
 
-        <!-- Project Summary Metric Grid -->
+        <!-- Todoist Integration Banner -->
+        <div class="todoist-banner-card" id="todoist-sync-banner">
+          <div class="todoist-banner-info">
+            <div class="todoist-logo-badge">⚡</div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">Integrasi Todoist Cloud</h4>
+                <span id="todoist-badge-pill" class="badge-pill badge-pill-muted">Belum Terhubung</span>
+              </div>
+              <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.15rem;" id="todoist-banner-desc">
+                Hubungkan akun Todoist untuk sinkronisasi proyek dan tugas otomatis dua arah.
+              </p>
+            </div>
+          </div>
+          <div class="todoist-banner-actions">
+            <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.syncAllToTodoist()" title="Kirim proyek & tugas ke Todoist">
+              <span>🔄 Sinkron ke Todoist</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.importFromTodoist()" title="Tarik proyek dari akun Todoist">
+              <span>⬇️ Impor dari Todoist</span>
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="GoalGettenApp.openTodoistModal()" title="Pengaturan Token">
+              <span>⚙️ Token</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Projects Stat Summary -->
         <div class="summary-grid" style="margin-top: 1.25rem;">
           <div class="stat-box">
-            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">📁</div>
+            <div class="stat-icon" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">📁</div>
             <div class="stat-info">
               <h4>Total Proyek</h4>
               <div class="stat-value" id="proj-stat-total">0 Proyek</div>
@@ -452,10 +483,10 @@
           </div>
 
           <div class="stat-box">
-            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">⏳</div>
+            <div class="stat-icon" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">📋</div>
             <div class="stat-info">
-              <h4>Sedang Berjalan</h4>
-              <div class="stat-value" id="proj-stat-active">0 Proyek</div>
+              <h4>Total Tugas</h4>
+              <div class="stat-value" id="proj-stat-tasks">0 Tugas</div>
             </div>
           </div>
 
@@ -463,58 +494,55 @@
             <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">✓</div>
             <div class="stat-info">
               <h4>Tugas Selesai</h4>
-              <div class="stat-value" id="proj-stat-tasks-done">0 / 0 Tugas</div>
+              <div class="stat-value" id="proj-stat-done">0 Selesai (0%)</div>
             </div>
           </div>
 
           <div class="stat-box">
-            <div class="stat-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;">📈</div>
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">⚠️</div>
             <div class="stat-info">
-              <h4>Rata-rata Progres</h4>
-              <div class="stat-value" id="proj-stat-avg-progress">0%</div>
+              <h4>Terlewat Deadline</h4>
+              <div class="stat-value" id="proj-stat-overdue">0 Terlewat</div>
             </div>
           </div>
         </div>
 
-        <!-- Project Filter & Search Toolbar -->
-        <div class="habit-filter-toolbar" style="margin-top: 1.5rem;">
-          <div class="filter-search-box">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="project-search-input" class="search-input" placeholder="Cari nama proyek atau tugas..." oninput="GoalGettenApp.handleProjectSearch(this.value)">
+        <!-- Two Column Projects & Tasks Layout -->
+        <div class="projects-workspace-layout" style="margin-top: 1.5rem;">
+          <!-- Left Column: Projects List Panel -->
+          <div class="projects-sidebar-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Daftar Proyek</h4>
+              <button class="icon-btn-sm" onclick="GoalGettenApp.openAddProjectModal()" title="Tambah Proyek">+</button>
+            </div>
+            <div class="projects-nav-list" id="projects-nav-container">
+              <!-- Rendered dynamically -->
+            </div>
           </div>
 
-          <div class="filter-pills-row">
-            <div class="filter-status-group">
-              <button class="filter-pill-btn active" data-proj-status="all" onclick="GoalGettenApp.setProjectStatusFilter('all')">Semua</button>
-              <button class="filter-pill-btn" data-proj-status="in-progress" onclick="GoalGettenApp.setProjectStatusFilter('in-progress')">Sedang Berjalan ⏳</button>
-              <button class="filter-pill-btn" data-proj-status="completed" onclick="GoalGettenApp.setProjectStatusFilter('completed')">Selesai 100% ✓</button>
+          <!-- Right Column: Active Project Details & Tasks -->
+          <div class="project-tasks-panel">
+            <!-- Active Project Banner -->
+            <div class="project-active-header" id="project-active-header">
+              <!-- Rendered dynamically -->
             </div>
 
-            <div class="filter-category-select-wrap">
-              <select id="project-category-filter" class="filter-category-select" onchange="GoalGettenApp.setProjectCategoryFilter(this.value)">
-                <option value="all">Semua Kategori</option>
-                <option value="Intellectual / Career">Intellectual / Career</option>
-                <option value="Physical / Health">Physical / Health</option>
-                <option value="Spiritual">Spiritual</option>
-                <option value="Keuangan">Keuangan</option>
-                <option value="Emotional / Personal">Emotional / Personal</option>
-                <option value="Creativity / Custom">Creativity / Custom</option>
-              </select>
+            <!-- Task Filter Bar -->
+            <div class="tasks-filter-bar">
+              <div class="filter-pills">
+                <button class="filter-pill active" data-filter="all" onclick="GoalGettenApp.setTaskFilter('all')">Semua</button>
+                <button class="filter-pill" data-filter="active" onclick="GoalGettenApp.setTaskFilter('active')">Aktif</button>
+                <button class="filter-pill" data-filter="done" onclick="GoalGettenApp.setTaskFilter('done')">Selesai</button>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="GoalGettenApp.openAddTaskModal()">+ Tugas Baru</button>
             </div>
 
-            <div class="filter-category-select-wrap">
-              <select id="project-priority-filter" class="filter-category-select" onchange="GoalGettenApp.setProjectPriorityFilter(this.value)">
-                <option value="all">Semua Prioritas</option>
-                <option value="high">🔥 Prioritas Tinggi</option>
-                <option value="medium">⚡ Prioritas Sedang</option>
-                <option value="low">🟢 Prioritas Normal</option>
-              </select>
+            <!-- Tasks List -->
+            <div class="tasks-list" id="tasks-list-container">
+              <!-- Rendered dynamically -->
             </div>
           </div>
         </div>
-
-        <!-- Projects Grid Container -->
-        <div class="projects-grid-layout" id="projects-container" style="margin-top: 1.25rem;"></div>
       </section>
 
       <!-- App Global Footer -->
@@ -1216,13 +1244,157 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container"></div>
 
+  <!-- MODAL: TAMBAH / EDIT PROYEK -->
+  <div class="modal-overlay" id="modal-project">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-family: var(--font-display); font-size: 1.3rem;" id="modal-project-heading">Tambah Proyek Baru</h3>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-project')">✕</button>
+      </div>
+
+      <form id="modal-project-form">
+        <input type="hidden" id="modal-project-id">
+
+        <div class="form-group">
+          <label for="modal-project-title">Nama Proyek</label>
+          <input type="text" id="modal-project-title" class="form-control" placeholder="Contoh: Belajar Python AI & Machine Learning" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="modal-project-icon">Ikon Proyek</label>
+            <input type="text" id="modal-project-icon" class="form-control" value="📋" placeholder="Pilih emoji (💻, 🎬, 🚀, dll)">
+          </div>
+
+          <div class="form-group">
+            <label for="modal-project-color">Warna Tema</label>
+            <input type="color" id="modal-project-color" class="form-control" value="#8b5cf6" style="height: 44px; padding: 2px 6px;">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-project')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Proyek</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TAMBAH / EDIT TUGAS -->
+  <div class="modal-overlay" id="modal-task">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h3 style="font-family: var(--font-display); font-size: 1.3rem;" id="modal-task-heading">Tambah Tugas Baru</h3>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-task')">✕</button>
+      </div>
+
+      <form id="modal-task-form">
+        <input type="hidden" id="modal-task-id">
+
+        <div class="form-group">
+          <label for="modal-task-project">Pilih Proyek</label>
+          <select id="modal-task-project" class="form-control" required></select>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-task-title">Judul Tugas / Aksi</label>
+          <input type="text" id="modal-task-title" class="form-control" placeholder="Contoh: Selesaikan bab 1 tutorial PyTorch" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="modal-task-priority">Tingkat Prioritas</label>
+            <select id="modal-task-priority" class="form-control">
+              <option value="1">🔴 P1 - Mendesak & Penting (Tinggi)</option>
+              <option value="2" selected>🟡 P2 - Normal (Sedang)</option>
+              <option value="3">🟢 P3 - Santai (Rendah)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="modal-task-duedate">Tenggat Waktu (Due Date)</label>
+            <input type="date" id="modal-task-duedate" class="form-control">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-task-notes">Catatan Tambahan (Opsional)</label>
+          <textarea id="modal-task-notes" class="form-control" rows="2" placeholder="Tautan referensi, detail instruksi, dll..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-task')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Tugas</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PENGATURAN INTEGRASI TODOIST -->
+  <div class="modal-overlay" id="modal-todoist">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.5rem;">⚡</span>
+          <h3 style="font-family: var(--font-display); font-size: 1.3rem;">Integrasi Todoist REST API</h3>
+        </div>
+        <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-todoist')">✕</button>
+      </div>
+
+      <div style="margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; background: var(--bg-input); padding: 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-glass);">
+        💡 <strong>Cara mendapatkan Todoist API Token:</strong><br>
+        1. Buka akun <a href="https://todoist.com/app/settings/integrations/developer" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: underline;">Todoist Developer Settings</a>.<br>
+        2. Salin <strong>API token</strong> Anda dan tempel di bawah ini. Token tersimpan aman di peramban lokal.
+      </div>
+
+      <div class="form-group">
+        <label for="modal-todoist-token">Todoist Personal API Token</label>
+        <input type="password" id="modal-todoist-token" class="form-control" placeholder="e.g. 0123456789abcdef0123456789abcdef">
+      </div>
+
+      <div id="todoist-test-feedback" style="margin-bottom: 1.25rem; font-size: 0.85rem; display: none; padding: 0.75rem; border-radius: var(--radius-md);"></div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+        <button type="button" class="btn btn-secondary" style="color: #ef4444;" onclick="GoalGettenApp.clearTodoistToken()">Putus Koneksi</button>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.testTodoistConnection()">Uji Koneksi</button>
+          <button type="button" class="btn btn-primary" onclick="GoalGettenApp.saveTodoistToken()">Simpan Token</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SYNC PROGRESS LOG -->
+  <div class="modal-overlay" id="modal-sync-progress">
+    <div class="modal-dialog">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3 style="font-family: var(--font-display); font-size: 1.2rem;" id="sync-progress-title">Sinkronisasi Data...</h3>
+        <button class="icon-btn" id="sync-progress-close-btn" onclick="GoalGettenApp.closeModal('modal-sync-progress')">✕</button>
+      </div>
+
+      <div id="sync-progress-spinner-area" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+        <div class="sync-spinner"></div>
+        <span id="sync-progress-current-step" style="font-size: 0.85rem; color: var(--text-secondary);">Memproses sinkronisasi...</span>
+      </div>
+
+      <div id="sync-progress-log" class="sync-log-box"></div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.25rem;">
+        <button type="button" class="btn btn-primary" id="sync-progress-done-btn" style="display: none;" onclick="GoalGettenApp.closeModal('modal-sync-progress')">Selesai</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts with Version Cache-Buster -->
-  <script src="js/storage.js?v=6.0"></script>
-  <script src="js/gamification.js?v=6.0"></script>
+  <script src="js/storage.js?v=6.1"></script>
+  <script src="js/gamification.js?v=6.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/auth.js?v=6.0"></script>
-  <script src="js/ai-coach.js?v=6.0"></script>
-  <script src="js/app.js?v=6.0"></script>
+  <script src="js/auth.js?v=6.1"></script>
+  <script src="js/ai-coach.js?v=6.1"></script>
+  <script src="js/projects.js?v=6.1"></script>
+  <script src="js/todoist.js?v=6.1"></script>
+  <script src="js/gcal.js?v=6.1"></script>
+  <script src="js/app.js?v=6.1"></script>
 
   <!-- PWA Service Worker Registration with Auto-Update -->
   <script>
