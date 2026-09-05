@@ -53,15 +53,27 @@ class ProjectManager {
     return projects.find(p => p.id === projectId) || null;
   }
 
-  static addProject({ title, color, icon }) {
+  static addProject({ title, category = 'Intellectual / Career', priority = 1, dueDate = '', description = '', color = '#8b5cf6', icon = '📋', tasks = [] }) {
     const projects = this.getProjects();
     const newProject = {
       id: 'p-' + Date.now(),
       title: title.trim(),
+      category: category || 'Intellectual / Career',
+      priority: parseInt(priority) || 1,
+      dueDate: dueDate || '',
+      description: description || '',
       color: color || '#8b5cf6',
       icon: icon || '📋',
       todoistProjectId: null,
-      tasks: []
+      tasks: tasks.map(t => ({
+        id: t.id || ('t-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)),
+        title: (t.title || '').trim(),
+        priority: parseInt(t.priority) || 2,
+        dueDate: t.dueDate || dueDate || '',
+        done: Boolean(t.done),
+        todoistTaskId: t.todoistTaskId || null,
+        notes: t.notes || ''
+      })).filter(t => t.title.length > 0)
     };
     projects.push(newProject);
     this.saveProjects(projects);

@@ -1244,37 +1244,80 @@ Belajar Skill AI 45 Menit | Intellectual / Career | 45 | Karier AI Engineer | JI
   <!-- TOAST NOTIFICATION CONTAINER -->
   <div id="toast-container"></div>
 
-  <!-- MODAL: TAMBAH / EDIT PROYEK -->
+  <!-- MODAL: TAMBAH / EDIT PROYEK DENGAN AI BREAKDOWN & MILESTONES -->
   <div class="modal-overlay" id="modal-project">
-    <div class="modal-dialog">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div class="modal-dialog large" style="max-width: 620px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
         <h3 style="font-family: var(--font-display); font-size: 1.3rem;" id="modal-project-heading">Tambah Proyek Baru</h3>
         <button class="icon-btn" onclick="GoalGettenApp.closeModal('modal-project')">✕</button>
       </div>
 
       <form id="modal-project-form">
         <input type="hidden" id="modal-project-id">
+        <input type="hidden" id="modal-project-icon" value="📋">
+        <input type="hidden" id="modal-project-color" value="#8b5cf6">
 
         <div class="form-group">
-          <label for="modal-project-title">Nama Proyek</label>
-          <input type="text" id="modal-project-title" class="form-control" placeholder="Contoh: Belajar Python AI & Machine Learning" required>
+          <label for="modal-project-title">Nama Proyek / Sasaran Kerja</label>
+          <input type="text" id="modal-project-title" class="form-control" placeholder="Contoh: Tugas Metodologi Penelitian" required>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="modal-project-icon">Ikon Proyek</label>
-            <input type="text" id="modal-project-icon" class="form-control" value="📋" placeholder="Pilih emoji (💻, 🎬, 🚀, dll)">
+            <label for="modal-project-category">Kategori</label>
+            <select id="modal-project-category" class="form-control">
+              <option value="Intellectual / Career" selected>Intellectual / Career</option>
+              <option value="Physical / Health">Physical / Health</option>
+              <option value="Spiritual">Spiritual</option>
+              <option value="Keuangan">Keuangan</option>
+              <option value="Emotional / Personal">Emotional / Personal</option>
+              <option value="Creativity / Custom">Creativity / Custom</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label for="modal-project-color">Warna Tema</label>
-            <input type="color" id="modal-project-color" class="form-control" value="#8b5cf6" style="height: 44px; padding: 2px 6px;">
+            <label for="modal-project-priority">Prioritas</label>
+            <select id="modal-project-priority" class="form-control">
+              <option value="1" selected>🔥 Tinggi (High)</option>
+              <option value="2">⚡ Sedang (Medium)</option>
+              <option value="3">🟢 Rendah (Low)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="modal-project-duedate">Target Tenggat Waktu (Deadline)</label>
+          <input type="date" id="modal-project-duedate" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label for="modal-project-desc">Deskripsi & Sasaran Utama Proyek</label>
+          <textarea id="modal-project-desc" class="form-control" rows="3" placeholder="Contoh: Buat 1 Slide Untuk Gagasan Desertasi (Judul, Gap, Metodologi Penelitian). Pertemuan ke-4 Wajib Presentasi"></textarea>
+        </div>
+
+        <!-- Daftar Tugas / Milestone Proyek Header & Actions -->
+        <div style="margin-top: 1.25rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
+            <label style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0;">Daftar Tugas / Milestone Proyek:</label>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button type="button" class="btn-ai-sparkle-pill" id="btn-ai-project-breakdown" onclick="GoalGettenApp.smartBreakdownProjectTasks()" title="AI akan memecah proyek ini menjadi milestone tugas terstruktur">
+                <span>✨ AI Breakdown Tugas</span>
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-add-task-row" onclick="GoalGettenApp.addProjectTaskRow()" title="Tambah satu baris tugas kosong">
+                <span>+ Tambah Baris</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Task Rows Container -->
+          <div id="modal-project-tasks-list" class="project-modal-tasks-container">
+            <!-- Rendered dynamically -->
           </div>
         </div>
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
           <button type="button" class="btn btn-secondary" onclick="GoalGettenApp.closeModal('modal-project')">Batal</button>
-          <button type="submit" class="btn btn-primary">Simpan Proyek</button>
+          <button type="submit" class="btn btn-primary" id="btn-submit-project">Simpan Proyek</button>
         </div>
       </form>
     </div>

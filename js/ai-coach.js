@@ -990,6 +990,91 @@ Example categories: Spiritual, Physical / Health, Intellectual / Career, Keuanga
       </div>
     `;
   }
+
+  // =========================================================================
+  // AI Project Breakdown Generator for "Modal Proyek" 📋
+  // =========================================================================
+  static async smartBreakdownProject({ title, category = 'Intellectual / Career', description = '', deadline = '' }) {
+    let generatedTasks = [];
+    const apiKey = (StorageManager.getApiKey() || '').trim();
+
+    if (apiKey) {
+      try {
+        const prompt = `Anda adalah productivity & project management expert. Pecah proyek berikut menjadi 4 sampai 5 langkah tugas (actionable tasks / milestones) yang runut dan jelas dalam bahasa Indonesia:
+Proyek: "${title}"
+Kategori: ${category}
+Deskripsi/Sasaran: "${description || '-'}"
+Deadline Proyek: ${deadline || '-'}
+
+Format output WAJIB berupa JSON array valid MURNI tanpa teks markdown lain:
+[
+  {"title": "Nama tugas konkret 1", "priority": 1},
+  {"title": "Nama tugas konkret 2", "priority": 2},
+  {"title": "Nama tugas konkret 3", "priority": 2}
+]`;
+        const rawRes = await this.callGeminiAPI(prompt, "You are a JSON-only response generator for project tasks breakdown in Indonesian.");
+        const cleanJson = rawRes.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleanJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          generatedTasks = parsed.map(t => ({
+            title: t.title || t.name || String(t),
+            priority: parseInt(t.priority) || 2
+          }));
+        }
+      } catch (e) {
+        console.warn('Gemini project breakdown fallback to heuristics:', e);
+      }
+    }
+
+    if (generatedTasks.length === 0) {
+      await this.simulateTypingDelay(350);
+      const text = (title + ' ' + description).toLowerCase();
+
+      if (text.includes('penelitian') || text.includes('desertasi') || text.includes('skripsi') || text.includes('tesis') || text.includes('metodologi') || text.includes('makalah') || text.includes('jurnal') || text.includes('presentasi')) {
+        generatedTasks = [
+          { title: 'Identifikasi Rumusan Masalah, Gap Penelitian & Urgensi Topik', priority: 1 },
+          { title: 'Tinjauan Pustaka & Sintesis Literatur Kunci Terkait', priority: 1 },
+          { title: 'Rancang Kerangka Konseptual & Peta Metodologi Penelitian', priority: 2 },
+          { title: 'Buat 1 Slide Rangkuman Gagasan Desertasi (Judul, Gap, Metode)', priority: 1 },
+          { title: 'Simulasi Presentasi & Siapkan Antisipasi Pertanyaan Dosen', priority: 2 }
+        ];
+      } else if (text.includes('web') || text.includes('app') || text.includes('coding') || text.includes('aplikasi') || text.includes('sistem') || text.includes('software')) {
+        generatedTasks = [
+          { title: 'Rancang arsitektur sistem, skema database & alur pengguna', priority: 1 },
+          { title: 'Setup repositori project & implementasi core business logic', priority: 1 },
+          { title: 'Desain UI/UX responsif & integrasi komponen antarmuka', priority: 2 },
+          { title: 'Uji fungsionalitas, perbaiki bug & optimasi performa', priority: 2 },
+          { title: 'Deploy ke server produksi & buat petunjuk penggunaan', priority: 3 }
+        ];
+      } else if (text.includes('video') || text.includes('konten') || text.includes('youtube') || text.includes('desain') || text.includes('media')) {
+        generatedTasks = [
+          { title: 'Brainstorming ide topik & riset kata kunci target', priority: 1 },
+          { title: 'Tulis naskah / storyboard alur konten secara rinci', priority: 1 },
+          { title: 'Produksi aset visual, rekaman materi & desain thumbnail', priority: 2 },
+          { title: 'Proses editing, mixing audio & penambahan subtitle', priority: 2 },
+          { title: 'Publikasi, optimasi judul/deskripsi & distribusi media sosial', priority: 3 }
+        ];
+      } else if (text.includes('bisnis') || text.includes('omset') || text.includes('keuangan') || text.includes('marketing') || text.includes('jual')) {
+        generatedTasks = [
+          { title: 'Analisis kebutuhan target market & profil kompetitor', priority: 1 },
+          { title: 'Susun penawaran produk (offer) & materi promosi utama', priority: 1 },
+          { title: 'Luncurkan kampanye pemasaran di kanal utama', priority: 2 },
+          { title: 'Follow-up prospek & evaluasi konversi penjualan harian', priority: 2 },
+          { title: 'Rekapitulasi arus kas & susun rencana ekspansi berikutnya', priority: 3 }
+        ];
+      } else {
+        generatedTasks = [
+          { title: `Riset awal & kumpulkan seluruh referensi penting untuk "${title}"`, priority: 1 },
+          { title: 'Susun draf rencana aksi terstruktur & bagi tahapan eksekusi', priority: 1 },
+          { title: 'Eksekusi pekerjaan utama tahap demi tahap sesuai tenggat', priority: 2 },
+          { title: 'Tinjau hasil sementara & minta masukan / feedback rekan', priority: 2 },
+          { title: 'Penyempurnaan akhir, finalisasi dan dokumentasikan hasil', priority: 3 }
+        ];
+      }
+    }
+
+    return generatedTasks;
+  }
 }
 
 // Attach globally
