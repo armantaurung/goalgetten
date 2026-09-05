@@ -1,51 +1,23 @@
 /**
  * ProjectManager — Proyek & Tugas untuk GoalGetten
- * Data Model: { id, title, color, icon, todoistProjectId, tasks: [{id, title, priority, dueDate, done, todoistTaskId, notes}] }
+ * Data Model: { id, title, category, priority, dueDate, description, color, icon, todoistProjectId, tasks: [{id, title, priority, dueDate, done, todoistTaskId, notes}] }
  */
-
-const PROJECTS_STORAGE_KEY = 'goalgetten_projects';
-
-const DEFAULT_PROJECTS = [
-  {
-    id: 'p-1',
-    title: 'GoalGetten App Development',
-    color: '#f59e0b',
-    icon: '💻',
-    todoistProjectId: null,
-    tasks: [
-      { id: 't-1', title: 'Buat wireframe UI dashboard', priority: 1, dueDate: '2026-09-05', done: true, todoistTaskId: null, notes: '' },
-      { id: 't-2', title: 'Implementasi fitur habit tracker', priority: 1, dueDate: '2026-09-10', done: true, todoistTaskId: null, notes: '' },
-      { id: 't-3', title: 'Integrasi Google Calendar API', priority: 2, dueDate: '2026-09-15', done: false, todoistTaskId: null, notes: 'Perlu setup Google Cloud Console' },
-      { id: 't-4', title: 'Deploy ke Vercel & PWA setup', priority: 2, dueDate: '2026-09-20', done: true, todoistTaskId: null, notes: '' },
-      { id: 't-5', title: 'Tulis dokumentasi penggunaan', priority: 3, dueDate: '2026-09-25', done: false, todoistTaskId: null, notes: '' }
-    ]
-  },
-  {
-    id: 'p-2',
-    title: 'Konten & Media Sosial',
-    color: '#d946ef',
-    icon: '🎬',
-    todoistProjectId: null,
-    tasks: [
-      { id: 't-6', title: 'Buat script video YouTube: Habit Tracker AI', priority: 1, dueDate: '2026-09-08', done: false, todoistTaskId: null, notes: '' },
-      { id: 't-7', title: 'Desain thumbnail video', priority: 2, dueDate: '2026-09-09', done: false, todoistTaskId: null, notes: '' },
-      { id: 't-8', title: 'Upload dan jadwalkan posting', priority: 2, dueDate: '2026-09-12', done: false, todoistTaskId: null, notes: '' }
-    ]
-  }
-];
 
 class ProjectManager {
   static getProjects() {
-    const data = localStorage.getItem(PROJECTS_STORAGE_KEY);
-    if (!data) {
-      this.saveProjects(DEFAULT_PROJECTS);
-      return DEFAULT_PROJECTS;
+    if (typeof StorageManager !== 'undefined' && StorageManager.getProjects) {
+      return StorageManager.getProjects();
     }
-    return JSON.parse(data);
+    const data = localStorage.getItem('goalgetten_projects');
+    return data ? JSON.parse(data) : [];
   }
 
   static saveProjects(projects) {
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
+    if (typeof StorageManager !== 'undefined' && StorageManager.saveProjects) {
+      StorageManager.saveProjects(projects);
+      return;
+    }
+    localStorage.setItem('goalgetten_projects', JSON.stringify(projects));
   }
 
   static getProject(projectId) {
@@ -57,15 +29,15 @@ class ProjectManager {
     const projects = this.getProjects();
     const newProject = {
       id: 'p-' + Date.now(),
-      title: title.trim(),
+      title: (title || '').trim(),
       category: category || 'Intellectual / Career',
       priority: parseInt(priority) || 1,
       dueDate: dueDate || '',
-      description: description || '',
+      description: (description || '').trim(),
       color: color || '#8b5cf6',
       icon: icon || '📋',
       todoistProjectId: null,
-      tasks: tasks.map(t => ({
+      tasks: (tasks || []).map(t => ({
         id: t.id || ('t-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4)),
         title: (t.title || '').trim(),
         priority: parseInt(t.priority) || 2,
@@ -100,14 +72,16 @@ class ProjectManager {
     const project = projects.find(p => p.id === projectId);
     if (!project) return null;
 
+    if (!project.tasks) project.tasks = [];
+
     const newTask = {
-      id: 't-' + Date.now(),
-      title: title.trim(),
-      priority: parseInt(priority),
+      id: 't-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      title: (title || '').trim(),
+      priority: parseInt(priority) || 2,
       dueDate: dueDate || '',
       done: false,
       todoistTaskId: null,
-      notes: notes || ''
+      notes: (notes || '').trim()
     };
     project.tasks.push(newTask);
     this.saveProjects(projects);
@@ -117,7 +91,7 @@ class ProjectManager {
   static toggleTask(projectId, taskId) {
     const projects = this.getProjects();
     const project = projects.find(p => p.id === projectId);
-    if (!project) return false;
+    if (!project || !project.tasks) return false;
     const task = project.tasks.find(t => t.id === taskId);
     if (!task) return false;
     task.done = !task.done;
@@ -128,7 +102,7 @@ class ProjectManager {
   static deleteTask(projectId, taskId) {
     const projects = this.getProjects();
     const project = projects.find(p => p.id === projectId);
-    if (!project) return;
+    if (!project || !project.tasks) return;
     project.tasks = project.tasks.filter(t => t.id !== taskId);
     this.saveProjects(projects);
   }
@@ -136,7 +110,7 @@ class ProjectManager {
   static updateTask(projectId, taskId, updates) {
     const projects = this.getProjects();
     const project = projects.find(p => p.id === projectId);
-    if (!project) return false;
+    if (!project || !project.tasks) return false;
     const idx = project.tasks.findIndex(t => t.id === taskId);
     if (idx === -1) return false;
     project.tasks[idx] = { ...project.tasks[idx], ...updates };
@@ -152,7 +126,7 @@ class ProjectManager {
     const today = new Date().toISOString().slice(0, 10);
 
     projects.forEach(p => {
-      p.tasks.forEach(t => {
+      (p.tasks || []).forEach(t => {
         totalTasks++;
         if (t.done) doneTasks++;
         else if (t.dueDate && t.dueDate < today) overdueTasks++;
@@ -162,3 +136,6 @@ class ProjectManager {
     return { totalProjects: projects.length, totalTasks, doneTasks, overdueTasks };
   }
 }
+
+// Attach globally
+window.ProjectManager = ProjectManager;
